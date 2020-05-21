@@ -162,6 +162,9 @@ class Metar(AVWX, commands.Cog):
 
         elif isinstance(error, aiohttp.ClientResponseError):
             message = "The API service is currently down. Try again later"
+        else:
+            log.error(error)
+            raise error
 
         embed = discord.Embed(title="Metar Unavailable", description=message)
         await ctx.send(embed=embed, delete_after=30)
