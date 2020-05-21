@@ -7,6 +7,7 @@ from datetime import datetime
 import aiohttp
 import discord
 from discord.ext import commands
+from amelia.mixins.config import ConfigMixin
 
 from amelia.avwx import AVWX, AvwxResponse
 import dateutil.parser
@@ -17,11 +18,25 @@ class FlightRule(typing.NamedTuple):
     emoji: str
     name: str
 
-class Metar(AVWX, commands.Cog):
+class Metar(ConfigMixin, AVWX, commands.Cog):
     def __init__(self, bot: commands.Bot):
         super(Metar, self).__init__()
-
         self.bot = bot
+
+        log.debug(hasattr(self, 'config_settings'))
+        log.debug(self.config_settings)
+
+    def get_metar_channel(self, guild: discord.Guild) -> typing.Optional[discord.TextChannel]:
+        guild_id_str = str(guild.id)
+
+        try:
+            ch_id = self.config_settings[guild_id_str]['channel']
+            ch = discord.utils.get(guild.text_channels, id=ch_id)
+            return ch
+        except KeyError:
+            ch = discord.utils.get(guild.text_channels, name='metar')
+            return ch
+
 
     def flight_rules(self, rule: str) -> FlightRule:
         """
@@ -69,7 +84,8 @@ class Metar(AVWX, commands.Cog):
             result = 'Clear'
         return result
 
-    @commands.command(name='metar')
+
+    @commands.group(name='metar', invoke_without_command=True)
     async def metar(self, ctx: commands.Context, icao: str):
         """
         Sends a discord.Embed to the channel that shows METAR information.
@@ -124,7 +140,18 @@ class Metar(AVWX, commands.Cog):
 
         embed.timestamp = valid_time
         embed.set_footer(text=elapsed)
-        await ctx.send(embed=embed, delete_after=120)
+
+        metar_channel = self.get_metar_channel(ctx.guild)
+        metar_channel_id = metar_channel.id if metar_channel is not None else None
+
+        # Send to channel with auto delete if its not the metar channel
+        if ctx.channel.id != metar_channel_id:
+            await ctx.send(embed=embed, delete_after=120)
+
+        # Send to metar channel if it exists with no delete
+        if isinstance(metar_channel, discord.TextChannel):
+            await metar_channel.send(embed=embed)
+
 
 
     @metar.error
@@ -170,6 +197,30 @@ class Metar(AVWX, commands.Cog):
         embed = discord.Embed(title="Metar Unavailable", description=message)
         await ctx.send(embed=embed, delete_after=30)
 
+    @metar.command(name='channel')
+    async def metar_channel_cmd(self, ctx: commands.Context, ch: discord.TextChannel = None):
+        guild_id_str = str(ctx.guild.id)
+
+        if ch is None:
+            try:
+                del self.config_settings[guild_id_str]['channel']
+            except KeyError:
+                pass
+            await ctx.send("Removed Metar Channel", delete_after=10)
+            return
+
+        if guild_id_str not in self.config_settings.keys():
+            self.config_settings[guild_id_str] = {}
+        self.config_settings[guild_id_str]['channel'] = ch.id
+        self.save_settings()
+
+        await ctx.send(f"Metar channel set to {ch.name}", delete_after=10)
+
+    @metar_channel_cmd.error
+    async def metar_channel_cmd_error(self, ctx: commands.Context, error: commands.CommandError):
+        await ctx.send(f"Unable to Set Metar Channel. {error}", delete_after=10)
+
+
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: commands.Context):
         """
@@ -214,6 +265,7 @@ class Metar(AVWX, commands.Cog):
             message: discord.Message = ctx.message
             await message.add_reaction(u"\u274C")  # Red X
             await message.delete(delay=5)
+            raise error
         except (discord.errors.NotFound, discord.errors.Forbidden, discord.errors.HTTPException):
             pass
 

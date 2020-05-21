@@ -16,6 +16,7 @@ class AVWX:
     """
 
     def __init__(self):
+        super(AVWX, self).__init__()
         _token = os.environ['AVWX_TOKEN']
         self.api_url = 'https://avwx.rest/api'
         self.avx_headers = {
