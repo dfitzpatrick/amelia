@@ -2,15 +2,14 @@ import logging
 import math
 import textwrap
 import typing
-from datetime import datetime
 
 import aiohttp
+import dateutil.parser
 import discord
 from discord.ext import commands
-from amelia.mixins.config import ConfigMixin
 
-from amelia.avwx import AVWX, AvwxResponse
-import dateutil.parser
+from amelia.mixins.avwx import AVWX, AvwxResponse
+from amelia.mixins.config import ConfigMixin
 
 log = logging.getLogger(__name__)
 
