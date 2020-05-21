@@ -21,6 +21,7 @@ def load_cogs(cogs: typing.Tuple[str]):
 
 extensions = (
     'amelia.cogs.metar',
+    'amelia.cogs.taf',
 )
 
 
