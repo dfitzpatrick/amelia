@@ -29,7 +29,7 @@ bot = commands.Bot(
 )
 
 load_cogs(extensions)
-bot.run(os.environ['BOT_TOKEN'])
+bot.run(os.environ['AMELIA_TOKEN'])
 
 
 
