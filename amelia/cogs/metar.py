@@ -9,6 +9,7 @@ import discord
 from discord.ext import commands
 
 from amelia.avwx import AVWX, AvwxResponse
+import dateutil.parser
 
 log = logging.getLogger(__name__)
 
@@ -89,8 +90,8 @@ class Metar(AVWX, commands.Cog):
         if 'error' in m.keys():
             raise commands.BadArgument(m['error'])
         icao = icao.upper()
-        now = datetime.fromisoformat(m['meta']['timestamp'].replace('Z', ''))
-        valid_time = datetime.fromisoformat(m['time']['dt'].replace('Z', ''))
+        now = dateutil.parser.parse(m['meta']['timestamp'])
+        valid_time = dateutil.parser.parse(m['time']['dt'])
         elapsed = "Reported {} minutes ago".format(math.ceil((now - valid_time).seconds / 60))
         valid_fmt = valid_time.strftime("%H:%M")
         altimeter = m['translate']['altimeter']
