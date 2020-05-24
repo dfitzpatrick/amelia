@@ -9,6 +9,9 @@ log = logging.getLogger(__name__)
 
 AvwxResponse = typing.Optional[typing.Dict[str, typing.Any]]
 
+class AvwxEmptyResponseError(Exception):
+    pass
+
 class AVWX:
     """
     Simple Mixin that will allow a Discord COG to take advantage of AVWX API
@@ -49,9 +52,12 @@ class AVWX:
             status = response.status
             result = await response.json()
             log.debug(f"FETCH {status}: {url} - {result}")
+            if result is None:
+                raise AvwxEmptyResponseError
             return result
         except aiohttp.ClientResponseError as e:
             log.error(e)
+            raise
 
 
     async def fetch_metar(self, icao: str) -> AvwxResponse:

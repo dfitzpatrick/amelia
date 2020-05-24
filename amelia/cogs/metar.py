@@ -8,7 +8,7 @@ import dateutil.parser
 import discord
 from discord.ext import commands
 
-from amelia.mixins.avwx import AVWX, AvwxResponse
+from amelia.mixins.avwx import AVWX, AvwxResponse, AvwxEmptyResponseError
 from amelia.mixins.config import ConfigMixin
 
 log = logging.getLogger(__name__)
@@ -78,7 +78,7 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         clouds = m['translate']['clouds']
         if clouds:
             result = clouds.split('-')[0]
-            result = '\n'.join(r for r in result.split(','))
+            result = '\n'.join(r.strip() for r in result.split(','))
         else:
             result = 'Clear'
         return result
@@ -101,7 +101,15 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         :class: None
         """
         await ctx.trigger_typing()
-        m = await self.fetch_metar(icao)
+        try:
+            m = await self.fetch_metar(icao)
+        except AvwxEmptyResponseError:
+            title = 'Missing Metar'
+            description = 'This ICAO has no Metar Information'
+            embed = discord.Embed(title=title, description=description)
+            await ctx.send(embed=embed, delete_after=10)
+            return
+
         if 'error' in m.keys():
             raise commands.BadArgument(m['error'])
         icao = icao.upper()
