@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 discord-py = {extras = ["voice"],version = "*"}
 python-dateutil = "*"
+atomicwrites = "*"
 
 [requires]
 python_version = "3.6"
