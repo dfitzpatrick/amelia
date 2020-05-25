@@ -7,10 +7,12 @@ import aiohttp
 import dateutil.parser
 import discord
 from discord.ext import commands
+from datetime import datetime, timedelta
 
 from amelia import common
-from amelia.mixins.avwx import AVWX, AvwxEmptyResponseError
+from amelia.mixins.avwx import AVWX, AvwxEmptyResponseError, AvwxResponse
 from amelia.mixins.config import ConfigMixin
+import re
 
 log = logging.getLogger(__name__)
 
@@ -19,8 +21,21 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
     def __init__(self, bot: commands.Bot):
         super(TAF, self).__init__()
         self.bot = bot
+        self.time_format = '%b %d, %H:%M'
 
     def get_taf_channel(self, guild: discord.Guild) -> typing.Optional[discord.TextChannel]:
+        """
+        Retrieves the configured TAF channel from the json file if there is one.
+        This will default to a channel named 'metar' as part of the /flying/
+        Discord channel requests where this bot is mainly hosted.
+        Parameters
+        ----------
+        guild: Guild id in string form
+
+        Returns
+        -------
+        Optional[:class: discord.TextChannel]
+        """
         guild_id_str = str(guild.id)
 
         try:
@@ -31,7 +46,7 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
             ch = discord.utils.get(guild.text_channels, name='metar')
             return ch
 
-    def fetch_clouds(self, clouds: str) -> str:
+    def get_clouds(self, clouds: str) -> str:
         """
         Helper function that cleans up the cloud results.
         An example reply from the API is:
@@ -58,8 +73,89 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
             result = 'Clear'
         return result
 
+    def get_type(self, taf_type: str):
+        """
+        Text formatting for common TAF types (FROM, BECMG, TEMPO).
+        Resolves to the full english name.
+        Parameters
+        ----------
+        taf_type: The parsed TAF type from the AVWX api
+
+        Returns
+        -------
+        :class: str
+        """
+        taf_types = {
+            'BECMG': 'BECOMING',
+            'TEMPO': 'TEMPORARILY'
+        }
+        return taf_types.get(taf_type, taf_type)
+
+    def map_times(self, m: AvwxResponse) -> typing.Dict[str, typing.Dict[str, typing.Any]]:
+        """
+        The AVWX Response for times does not handle transitions so well.
+        We will manually parse the date and times from the API
+        Parameters
+        ----------
+        forecast
+
+        Returns
+        -------
+
+        """
+        result = {}
+        search_keys = ['start_time', 'end_time', 'transition_time']
+        for f in m['forecast']:
+            keys = f.keys()
+            for sk in search_keys:
+                if sk in keys:
+                    repr = f[sk]['repr']
+                    obj = f[sk]
+                    if repr not in result.keys():
+                        result[repr] = obj
+        return result
+
+
+    def parse_times(self, forecast: typing.Dict[str, typing.Any], mapping: typing.Dict[str, typing.Any])\
+            -> typing.Tuple[common.AvwxTime, common.AvwxTime]:
+        """
+        The AVWX Response for times does not handle transitions so well.
+        We will manually parse the date and times from the API if the format
+        is there. Otherwise we will resort to the normal start/end
+        Parameters
+        ----------
+        forecast
+
+        Returns
+        -------
+
+        """
+        pattern = r'[0-9]+\/[0-9]+'
+        match = re.search(pattern, forecast['sanitized'])
+        if match is not None:
+            match = match[0]
+            start, end = match.split('/')
+            start_obj = mapping[start]
+            end_obj = mapping[end]
+            return common.AvwxTime.create(start_obj), common.AvwxTime.create(end_obj)
+        return common.AvwxTime.create(forecast['start_time']), common.AvwxTime.create(forecast['end_time'])
+
+
+
+
     @commands.group(name='taf', invoke_without_command=True)
     async def taf(self, ctx: commands.Context, icao: str):
+        """
+        Retrieves a TAF from the ICAO provided.
+        Parameters
+        ----------
+        ctx: Discord Context Class
+        icao: the station identifier
+
+        Returns
+        -------
+        None
+        """
         await ctx.trigger_typing()
         try:
             m = await self.fetch_taf(icao)
@@ -72,57 +168,77 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
 
         if 'error' in m.keys():
             raise commands.BadArgument(m['error'])
+        time_maps = self.map_times(m)
         icao = icao.upper()
-        raw = '\n'.join(f['raw'] for f in m['forecast'])
+        station = m['station']
+        original_time = m['time']['repr']
+        raw = [f['raw'] for f in m['forecast']]
+
+        raw.insert(0, f"{station} {original_time}")
+        raw = '\n'.join(raw)
+        t = ":regional_indicator_t:"
         now = dateutil.parser.parse(m['meta']['timestamp'])
         valid_time = dateutil.parser.parse(m['time']['dt'])
-        elapsed = "Reported {} minutes ago".format(math.ceil((now - valid_time).seconds / 60))
-        valid_fmt = valid_time.strftime("%H:%M")
+        valid_time_fmt = common.td_format(now - valid_time)
+        elapsed = valid_time_fmt
+        valid_fmt = valid_time.strftime(self.time_format)
         description = textwrap.dedent(
             f"""
-            **__Taf Valid {valid_fmt}Z__**  *({elapsed})*
+            **__Taf Valid {valid_fmt}Z__**  
+            *Note: This report was generated {elapsed} afterwards.*
     
             {raw}
             """
         )
-        embed = discord.Embed(title=f"TAF {icao}", description=description)
+        embed = discord.Embed(title=f"{t} TAF {icao}", description=description)
         for idx, f in enumerate(m['forecast']):
-            f_start = dateutil.parser.parse(f['start_time']['dt'])
-            f_end = dateutil.parser.parse(f['end_time']['dt'])
-            status = common.FlightRule.create(f['flight_rules'])
+            f_start, f_end = self.parse_times(f, time_maps)
 
-            title = "{} {} **__From__** {}Z **__thru__** {}Z".format(
-                status.emoji,
-                status.name,
-                f_start.strftime("%H:%M"),
-                f_end.strftime("%H:%M")
-            )
+            status = common.FlightRule.create(f['flight_rules'])
+            taf_type = self.get_type(f['type'])
+            if taf_type == 'FROM':
+                title = "{} {} **__{}__** {}Z **__thru__** {}Z".format(
+                    status.emoji,
+                    status.name,
+                    taf_type,
+                    f_start.text,
+                    f_end.text
+                )
+            else:
+                title = "{} **__{}__** {} {} {}Z **__thru__** {}Z".format(
+                    ":arrow_heading_up:",
+                    taf_type,
+                    status.emoji,
+                    status.name,
+                    f_start.text,
+                    f_end.text,
+                )
+
             embed_description = ""
             translations = m['translate']['forecast'][idx]
-            t = '\u0020\u0020\u0020\u0020\u0020\u0020\u0020\u0020'
             for k, v in translations.items():
                 k: str
                 if v == '':
                     continue
                 key = k.capitalize().replace("_", " ")
                 if k == 'clouds':
-                    v = self.fetch_clouds(v)
+                    v = self.get_clouds(v)
 
-                embed_description += f"**{key}:** {t} {v}\n"
+                embed_description += f"**{key}:** {v}\n"
             embed_description += '\u200b\n'
             embed.add_field(name=title, value=embed_description, inline=False)
 
         embed.timestamp = valid_time
-        embed.set_footer(text=elapsed)
+        embed.set_footer(text="Generated {} from valid time. TAF Valid local time is".format(elapsed))
 
         taf_channel = self.get_taf_channel(ctx.guild)
-        metar_channel_id = taf_channel.id if taf_channel is not None else None
+        taf_channel_id = taf_channel.id if taf_channel is not None else None
 
-        # Send to channel with auto delete if its not the metar channel
-        if ctx.channel.id != metar_channel_id:
+        # Send to channel with auto delete if its not the taf channel
+        if ctx.channel.id != taf_channel_id:
             await ctx.send(embed=embed, delete_after=120)
 
-        # Send to metar channel if it exists with no delete
+        # Send to taf channel if it exists with no delete
         if isinstance(taf_channel, discord.TextChannel):
             await taf_channel.send(embed=embed)
 
@@ -174,7 +290,20 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
         await ctx.send(embed=embed, delete_after=30)
 
     @taf.command(name='channel')
+    @commands.has_guild_permissions(administrator=True)
     async def taf_channel_cmd(self, ctx: commands.Context, ch: discord.TextChannel = None):
+        """
+        Command that will set the given TAF channel to another channel and echo
+        all responses back there
+        Parameters
+        ----------
+        ctx: Discord Context Class
+        ch: a discord.TextChannel of the channel to set to
+
+        Returns
+        -------
+        None
+        """
         guild_id_str = str(ctx.guild.id)
 
         if ch is None:

@@ -10,6 +10,7 @@ from discord.ext import commands
 
 from amelia.mixins.avwx import AVWX, AvwxResponse, AvwxEmptyResponseError
 from amelia.mixins.config import ConfigMixin
+from amelia import common
 
 log = logging.getLogger(__name__)
 
@@ -115,7 +116,7 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         icao = icao.upper()
         now = dateutil.parser.parse(m['meta']['timestamp'])
         valid_time = dateutil.parser.parse(m['time']['dt'])
-        elapsed = "Reported {} minutes ago".format(math.ceil((now - valid_time).seconds / 60))
+        elapsed = common.td_format(now - valid_time)
         valid_fmt = valid_time.strftime("%H:%M")
         altimeter = m['translate']['altimeter']
         wind = m['translate']['wind'] or 'Calm'
@@ -129,12 +130,13 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         weather = '\n'.join(w['value'] for w in m['wx_codes']) or "No Weather Reported"
         description = textwrap.dedent(
             f"""
-            **__Metar Valid {valid_fmt}Z__**  *({elapsed})*
+            **__Metar Valid {valid_fmt}Z__**
+            *Note: This report was generated {elapsed} afterwards.*
             
             {raw}
             """
         )
-        status = self.flight_rules(m['flight_rules'])
+        status = common.FlightRule.create(m['flight_rules'])
         embed = discord.Embed(title=f"{status.emoji} {icao} ({status.name})", description=description)
         embed.add_field(name=":wind_chime: Wind", value=wind)
         embed.add_field(name=':eyes: Visibility', value=visibility)
@@ -146,7 +148,7 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         embed.add_field(name=':pencil: Remarks', value=remarks, inline=False)
 
         embed.timestamp = valid_time
-        embed.set_footer(text=elapsed)
+        embed.set_footer(text="Generated {} from valid time. Metar Valid local time is".format(elapsed))
 
         metar_channel = self.get_metar_channel(ctx.guild)
         metar_channel_id = metar_channel.id if metar_channel is not None else None
@@ -205,6 +207,7 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         await ctx.send(embed=embed, delete_after=30)
 
     @metar.command(name='channel')
+    @commands.has_guild_permissions(administrator=True)
     async def metar_channel_cmd(self, ctx: commands.Context, ch: discord.TextChannel = None):
         guild_id_str = str(ctx.guild.id)
 
