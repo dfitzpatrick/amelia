@@ -103,7 +103,11 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         """
         await ctx.trigger_typing()
         try:
-            m = await self.fetch_metar(icao)
+            icao_code = icao.upper()
+            if icao_code == 'KMOO':
+                # easter egg
+                icao_code = 'KDVT'
+            m = await self.fetch_metar(icao_code)
         except AvwxEmptyResponseError:
             title = 'Missing Metar'
             description = 'This ICAO has no Metar Information'
@@ -114,6 +118,8 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         if 'error' in m.keys():
             raise commands.BadArgument(m['error'])
         icao = icao.upper()
+
+
         now = dateutil.parser.parse(m['meta']['timestamp'])
         valid_time = dateutil.parser.parse(m['time']['dt'])
         elapsed = common.td_format(now - valid_time)
