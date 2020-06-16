@@ -87,3 +87,17 @@ class AVWX:
         """
         target = f'/taf/{icao}?options=translate'
         return await self._avwx_fetch(target)
+
+    async def fetch_station_info(self, icao: str) -> AvwxResponse:
+        """
+        Fetches the station information from the AVWX api
+        Parameters
+        ----------
+        icao: the icao code of the airport to fetch
+
+        Returns
+        -------
+        AvwxResponse JSON
+        """
+        target = f'/station/{icao}?format=json'
+        return await self._avwx_fetch(target)
