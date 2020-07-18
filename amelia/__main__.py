@@ -23,6 +23,7 @@ extensions = (
     'amelia.cogs.metar',
     'amelia.cogs.taf',
     'amelia.cogs.station',
+    'amelia.cogs.classroom',
 )
 
 

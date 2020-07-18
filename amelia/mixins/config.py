@@ -3,6 +3,7 @@ from atomicwrites import atomic_write
 import json
 import collections
 import logging
+import typing
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../', 'static'))
 FILE_PATH = os.path.normpath(f'{BASE_DIR}/settings.json')
@@ -70,6 +71,8 @@ class ConfigMixin:
         # Write out the updated contents
         with atomic_write(FILE_PATH, overwrite=True) as f:
             json.dump(self._config, f)
+
+
 
 
 
