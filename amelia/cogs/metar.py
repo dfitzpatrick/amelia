@@ -127,9 +127,9 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         altimeter = m['translate']['altimeter']
         wind = m['translate']['wind'] or 'Calm'
         clouds = self.fetch_clouds(m)
-        visibility = m['translate']['visibility']
-        temp = m['translate']['temperature']
-        dew = m['translate']['dewpoint']
+        visibility = m['translate']['visibility'] or "Not Reported"
+        temp = m['translate']['temperature'] or "Not Reported"
+        dew = m['translate']['dewpoint'] or "Not Reported"
         remarks = [f"{k} -  {v}" for k,v in m['translate']['remarks'].items()]
         remarks = '\n'.join(remarks) or 'No Remarks'
         raw = m['raw']
@@ -142,6 +142,9 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
             {raw}
             """
         )
+        remark_keys = m['translate']['remarks'].keys()
+        if '_$' in remark_keys or '$' in remark_keys:
+            description = "**Warning: This metar information is incomplete or requires servicing. This may cause the following station to report wrong such as Flight Rules**\n\n" + description
         status = common.FlightRule.create(m['flight_rules'])
         embed = discord.Embed(title=f"{status.emoji} {icao} ({status.name})", description=description)
         embed.add_field(name=":wind_chime: Wind", value=wind)
