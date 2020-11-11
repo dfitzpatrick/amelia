@@ -34,7 +34,7 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
             ch = discord.utils.get(guild.text_channels, id=ch_id)
             return ch
         except KeyError:
-            ch = discord.utils.get(guild.text_channels, name='metar-chat')
+            ch = discord.utils.get(guild.text_channels, name='metar')
             return ch
 
 
