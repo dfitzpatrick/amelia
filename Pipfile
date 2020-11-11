@@ -9,6 +9,7 @@ verify_ssl = true
 discord-py = "*"
 python-dateutil = "*"
 atomicwrites = "*"
+"discord.py" = "*"
 
 [requires]
 python_version = "3.6"

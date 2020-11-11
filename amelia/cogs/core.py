@@ -22,6 +22,7 @@ class Core(commands.Cog):
         if guild.id != 379051048129789953:
             return
 
+
         try:
             pax = discord.utils.get(guild.roles, id=759154599109328907)
             log.debug(pax)

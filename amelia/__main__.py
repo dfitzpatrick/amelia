@@ -1,7 +1,7 @@
 import logging
 import os
 import typing
-
+import discord
 from discord.ext import commands
 
 log = logging.getLogger(__name__)
@@ -26,9 +26,12 @@ extensions = (
     'amelia.cogs.core',
 )
 
+intents = discord.Intents.default()
+intents.members = True
 
 bot = commands.Bot(
     command_prefix='!',
+    intents=intents
 )
 
 load_cogs(extensions)
