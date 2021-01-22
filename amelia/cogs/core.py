@@ -24,7 +24,7 @@ class Core(commands.Cog):
 
 
         try:
-            pax = discord.utils.get(guild.roles, id=759154599109328907)
+            pax: discord.Role = discord.utils.get(guild.roles, id=759154599109328907)
             log.debug(pax)
             await member.add_roles(pax)
         except (discord.errors.Forbidden, discord.errors.HTTPException):
@@ -35,9 +35,21 @@ class Core(commands.Cog):
     async def on_member_join(self, member: discord.Member):
        await self.assign_pax_role(member)
 
-
-
-
+    @commands.Cog.listener()
+    async def on_ready(self):
+        guild: discord.Guild = self.bot.get_guild(379051048129789953)
+        pax: discord.Role = discord.utils.get(guild.roles, id=759154599109328907)
+        if not guild or not pax:
+            log.debug('no guild or role')
+            return
+        for m in guild.members:
+            if len(m.roles) == 1:
+                try:
+                    await m.add_roles(pax)
+                    log.debug(f"Added PAX to {m.display_name}")
+                except (discord.errors.Forbidden, discord.errors.HTTPException):
+                    continue
+        log.debug('done')
 
 def setup(bot: commands.Bot):
     bot.add_cog(Core(bot))

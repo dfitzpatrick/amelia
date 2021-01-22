@@ -1,6 +1,7 @@
 import typing
 from datetime import datetime, timedelta
 import dateutil.parser
+import discord
 
 class FlightRule(typing.NamedTuple):
     emoji: str
@@ -90,3 +91,9 @@ def td_format(td_object):
             strings.append("%s %s%s" % (period_value, period_name, has_s))
 
     return ", ".join(strings)
+
+def get_member_avatar_url(member: discord.Member) -> str:
+    base = "https://cdn.discordapp.com/"
+    id = member.id
+
+    return f"{base}/avatars/{id}/user_avatar.png"

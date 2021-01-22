@@ -229,7 +229,10 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
             embed.add_field(name=title, value=embed_description, inline=False)
 
         embed.timestamp = valid_time
-        embed.set_footer(text="Generated {} from valid time. TAF Valid local time is".format(elapsed))
+        embed.set_footer(
+            text=f"{ctx.author.display_name} | Not an official source for flight planning",
+            icon_url=ctx.author.avatar_url
+        )
 
         taf_channel = self.get_taf_channel(ctx.guild)
         taf_channel_id = taf_channel.id if taf_channel is not None else None
@@ -366,6 +369,7 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
         if ctx.cog != self:
             return
         try:
+            log.debug(error)
             message: discord.Message = ctx.message
             await message.add_reaction(u"\u274C")  # Red X
             await message.delete(delay=5)

@@ -7,7 +7,7 @@ import aiohttp
 import dateutil.parser
 import discord
 from discord.ext import commands
-
+commands.has_permissions()
 from amelia.mixins.avwx import AVWX, AvwxResponse, AvwxEmptyResponseError
 from amelia.mixins.config import ConfigMixin
 from amelia import common
@@ -157,7 +157,10 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         embed.add_field(name=':pencil: Remarks', value=remarks, inline=False)
 
         embed.timestamp = valid_time
-        embed.set_footer(text="Generated {} from valid time. Metar Valid local time is".format(elapsed))
+        embed.set_footer(
+            text=f"{ctx.author.display_name} | Not an official source for flight planning",
+            icon_url=ctx.author.avatar_url
+        )
 
         metar_channel = self.get_metar_channel(ctx.guild)
         metar_channel_id = metar_channel.id if metar_channel is not None else None
@@ -281,6 +284,7 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         if ctx.cog != self:
             return
         try:
+            log.debug(error)
             message: discord.Message = ctx.message
             await message.add_reaction(u"\u274C")  # Red X
             await message.delete(delay=5)

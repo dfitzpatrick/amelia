@@ -95,6 +95,10 @@ class Station(AVWX, SunRiseSet, commands.Cog):
         embed.add_field(name=':crescent_moon: Civil Twilight Ends', value=cte)
         embed.add_field(name=':airplane_arriving: Runways', value=rwys, inline=False)
 
+        embed.set_footer(
+            text=f"{ctx.author.display_name} | Not an official source for flight planning",
+            icon_url=ctx.author.avatar_url
+        )
         await ctx.send(embed=embed)
 
     @station.error
