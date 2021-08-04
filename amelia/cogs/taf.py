@@ -186,11 +186,14 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
             f"""
             **__Taf Valid {valid_fmt}Z__**  
             *Note: This report was generated {elapsed} afterwards.*
+            
+            [Click here for more information](http://theflying.life/airports/{icao})
     
             {raw}
             """
         )
-        embed = discord.Embed(title=f"{t} TAF {icao}", description=description)
+        title = f"{t} TAF {icao}"
+        embed = discord.Embed(title=title, url=common.TFL_URL + f"/airports/{icao}", description=description)
         for idx, f in enumerate(m['forecast']):
             f_start, f_end = self.parse_times(f, time_maps)
 

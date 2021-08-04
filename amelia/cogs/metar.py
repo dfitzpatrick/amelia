@@ -139,6 +139,8 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
             **__Metar Valid {valid_fmt}Z__**
             *Note: This report was generated {elapsed} afterwards.*
             
+            [Click here for more information](http://theflying.life/airports/{icao})
+            
             {raw}
             """
         )
@@ -146,7 +148,8 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         if '_$' in remark_keys or '$' in remark_keys:
             description = "**Warning: This metar information is incomplete or requires servicing. This may cause the following station to report wrong such as Flight Rules**\n\n" + description
         status = common.FlightRule.create(m['flight_rules'])
-        embed = discord.Embed(title=f"{status.emoji} {icao} ({status.name})", description=description)
+        title = f"{status.emoji} {icao} ({status.name})"
+        embed = discord.Embed(title=title, description=description, url=common.TFL_URL + f"/airports/{icao}")
         embed.add_field(name=":wind_chime: Wind", value=wind)
         embed.add_field(name=':eyes: Visibility', value=visibility)
         embed.add_field(name=':cloud: Clouds', value=clouds)
@@ -159,7 +162,7 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         embed.timestamp = valid_time
         embed.set_footer(
             text=f"{ctx.author.display_name} | Not an official source for flight planning",
-            icon_url=ctx.author.avatar_url
+            icon_url=ctx.author.avatar_url,
         )
 
         metar_channel = self.get_metar_channel(ctx.guild)

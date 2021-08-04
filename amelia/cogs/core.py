@@ -38,6 +38,8 @@ class Core(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         guild: discord.Guild = self.bot.get_guild(379051048129789953)
+        if not guild:
+            return
         pax: discord.Role = discord.utils.get(guild.roles, id=759154599109328907)
         if not guild or not pax:
             log.debug('no guild or role')

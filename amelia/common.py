@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import dateutil.parser
 import discord
 
+TFL_URL = 'http://theflying.life'
+
 class FlightRule(typing.NamedTuple):
     emoji: str
     name: str
