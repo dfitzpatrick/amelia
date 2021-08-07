@@ -1,19 +1,15 @@
-import asyncio
-import inspect
 import logging
-import textwrap
-import typing
-from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
 
-from amelia.mixins.config import ConfigMixin
+from amelia import AmeliaBot
+
 log = logging.getLogger(__name__)
 
 class Core(commands.Cog):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: AmeliaBot):
         self.bot = bot
 
     async def assign_pax_role(self, member: discord.Member):
@@ -30,6 +26,7 @@ class Core(commands.Cog):
         except (discord.errors.Forbidden, discord.errors.HTTPException):
 
             return
+
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
@@ -53,5 +50,5 @@ class Core(commands.Cog):
                     continue
         log.debug('done')
 
-def setup(bot: commands.Bot):
+def setup(bot: AmeliaBot):
     bot.add_cog(Core(bot))

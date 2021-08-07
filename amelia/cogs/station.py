@@ -8,12 +8,13 @@ from datetime import datetime, timezone
 import aiohttp
 import logging
 import typing
+from amelia import AmeliaBot
 
 log = logging.getLogger(__name__)
 
 class Station(AVWX, SunRiseSet, commands.Cog):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: AmeliaBot):
         super(Station, self).__init__()
         self.bot = bot
 
@@ -160,12 +161,7 @@ class Station(AVWX, SunRiseSet, commands.Cog):
         """
         if ctx.cog != self:
             return
-        try:
-            message: discord.Message = ctx.message
-            await message.add_reaction(u"\u2705")  # Green Checkbox
-            await message.delete(delay=5)
-        except (discord.errors.NotFound, discord.errors.Forbidden, discord.errors.HTTPException):
-            pass
+        await self.bot.hook_command_completion(ctx)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
@@ -184,12 +180,7 @@ class Station(AVWX, SunRiseSet, commands.Cog):
         """
         if ctx.cog != self:
             return
-        try:
-            message: discord.Message = ctx.message
-            await message.add_reaction(u"\u274C")  # Red X
-            await message.delete(delay=5)
-            raise error
-        except (discord.errors.NotFound, discord.errors.Forbidden, discord.errors.HTTPException):
-            pass
-def setup(bot: commands.Bot):
+        await self.bot.hook_command_error(ctx, error)
+
+def setup(bot: AmeliaBot):
     bot.add_cog(Station(bot))

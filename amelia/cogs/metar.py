@@ -11,6 +11,7 @@ commands.has_permissions()
 from amelia.mixins.avwx import AVWX, AvwxResponse, AvwxEmptyResponseError
 from amelia.mixins.config import ConfigMixin
 from amelia import common
+from amelia import AmeliaBot
 
 log = logging.getLogger(__name__)
 
@@ -19,12 +20,9 @@ class FlightRule(typing.NamedTuple):
     name: str
 
 class Metar(ConfigMixin, AVWX, commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: AmeliaBot):
         super(Metar, self).__init__()
         self.bot = bot
-
-        log.debug(hasattr(self, 'config_settings'))
-        log.debug(self.config_settings)
 
     def get_metar_channel(self, guild: discord.Guild) -> typing.Optional[discord.TextChannel]:
         guild_id_str = str(guild.id)
@@ -262,12 +260,7 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         """
         if ctx.cog != self:
             return
-        try:
-            message: discord.Message = ctx.message
-            await message.add_reaction(u"\u2705") # Green Checkbox
-            await message.delete(delay=5)
-        except (discord.errors.NotFound, discord.errors.Forbidden, discord.errors.HTTPException):
-            pass
+        await self.bot.hook_command_completion(ctx)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
@@ -286,15 +279,8 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         """
         if ctx.cog != self:
             return
-        try:
-            log.debug(error)
-            message: discord.Message = ctx.message
-            await message.add_reaction(u"\u274C")  # Red X
-            await message.delete(delay=5)
-            raise error
-        except (discord.errors.NotFound, discord.errors.Forbidden, discord.errors.HTTPException):
-            pass
+        await self.bot.hook_command_error(ctx, error)
 
 
-def setup(bot: commands.Bot):
+def setup(bot: AmeliaBot):
     bot.add_cog(Metar(bot))
