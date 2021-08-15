@@ -2,7 +2,7 @@ from __future__ import annotations
 import typing as t
 from discord.ext import commands
 from ameliapg.constants import PgActions
-from ameliapg.server.models import AutoRole
+from ameliapg.autorole.models import AutoRoleDB
 import discord
 import logging
 import asyncio
@@ -23,12 +23,12 @@ class AutoRoleCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        auto_roles = await self.bot.pg.fetch_auto_roles()
+        auto_roles = await self.bot.pg.fetch_all_auto_roles()
         await self._load_to_cache(auto_roles)
 
         self.bot.pg.register_listener(self._notify)
 
-    async def _load_to_cache(self, auto_roles: t.List[AutoRole]):
+    async def _load_to_cache(self, auto_roles: t.List[AutoRoleDB]):
         for auto_role in auto_roles:
             guild = self.bot.get_guild(auto_role.guild_id)
             if guild is None:
@@ -60,7 +60,7 @@ class AutoRoleCog(commands.Cog):
 
     async def _notify(self, payload: PgNotify):
         e = payload.entity
-        if not isinstance(e, AutoRole):
+        if not isinstance(e, AutoRoleDB):
             return
         guild = self.bot.get_guild(e.guild_id)
         role = discord.utils.get(guild.roles, id=e.role_id)
@@ -81,9 +81,6 @@ class AutoRoleCog(commands.Cog):
         guild_roles = self.auto_roles.get(guild_id, {})
         return list(guild_roles.values())
 
-    @commands.command('testd')
-    async def testd(self, ctx):
-        self.bot.dispatch('testing_dispatch', "foobar")
 
     @commands.Cog.listener()
     async def on_testing_dispatch(self, message: str):
@@ -91,8 +88,14 @@ class AutoRoleCog(commands.Cog):
 
     @commands.bot_has_permissions(manage_roles=True)
     @commands.has_permissions(manage_roles=True)
-    @commands.command('autorole')
-    async def auto_role_cmd(self, ctx: commands.Context, role: discord.Role):
+    @commands.group('autorole', invoke_without_command=True)
+    async def auto_role_cmd(self, ctx: commands.Context, role: discord.Role = None):
+        if role is None:
+            description = "\n".join(r.name for r in self.cached_guild_roles(ctx.guild.id))
+            embed = discord.Embed(title="Current AutoRoles", description=description)
+            await ctx.send(embed=embed, delete_after=20)
+            return
+
         name = role.name
         key = ctx.guild.id
         in_cache = self.role_in_cache(role)
@@ -100,9 +103,35 @@ class AutoRoleCog(commands.Cog):
             log.debug('adding')
             await self.bot.pg.add_auto_role_to_guild(key, role.id)
             await ctx.send(f"Added {name} to AutoRole", delete_after=5)
+
         else:
             await self.bot.pg.remove_auto_role_from_guild(role.id)
             await ctx.send(f"Removed {name} from AutoRole", delete_after=5)
+
+    @auto_role_cmd.command(name='sync')
+    async def autorole_sync(self, ctx: commands.Context):
+        """
+        Syncs any added autoroles with members. This is explicit in case an
+        autorole was added accidently.
+
+
+        Parameters
+        ----------
+        ctx
+
+        Returns
+        -------
+
+        """
+        await ctx.trigger_typing()
+        await ctx.send("Syncing Newly Added AutoRoles to members. This may take awhile... Note: Roles that are removed are not automatically removed from members", delete_after=10)
+        roles = self.cached_guild_roles(ctx.guild.id)
+        for m in ctx.guild.members:
+            m: discord.Member
+            for r in roles:
+                if r not in m.roles:
+                    await m.add_roles(r)
+
 
     @auto_role_cmd.error
     async def auto_role_cmd_error(self, ctx: commands.Context, error: commands.CommandError):

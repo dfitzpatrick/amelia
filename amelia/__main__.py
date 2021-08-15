@@ -12,21 +12,9 @@ from amelia import AmeliaBot
 
 log = logging.getLogger(__name__)
 
-def load_cogs(cogs: typing.Tuple[str]):
-    for cog in cogs:
-        try:
-            bot.load_extension(cog)
-            log.info(f"Cog Loaded: {cog}")
-        except commands.ExtensionNotLoaded:
-            pass
-
-        except Exception as error:
-            log.error(f'Could not load COG: {cog}. {error}')
-            raise
-
 
 extensions = (
-    'amelia.cogs.metar',
+   'amelia.cogs.metar',
     'amelia.cogs.taf',
     'amelia.cogs.station',
     'amelia.cogs.core',

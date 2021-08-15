@@ -1,16 +1,17 @@
 from __future__ import annotations
+
 import logging
 import os
 import sys
+import typing as t
 from logging import StreamHandler, FileHandler
-from discord.ext import commands
+
+import discord
 from ameliapg import AmeliaPgService
 from ameliapg.constants import PgActions
-import discord
-from ameliapg.server.models import GuildConfig
-import asyncio
-
-import typing as t
+from ameliapg.errors import DuplicateEntity
+from discord.ext import commands
+from ameliapg.server.models import GuildDB
 if t.TYPE_CHECKING:
 
     from ameliapg.models import PgNotify
@@ -46,7 +47,7 @@ class AmeliaBot(commands.Bot):
 
     def __init__(self, pool, connection, **kwargs):
         super(AmeliaBot, self).__init__(**kwargs)
-        self.servers: t.Dict[int, GuildConfig] = {}
+        self.servers: t.Dict[int, ] = {}
         self.pg: AmeliaPgService = AmeliaPgService(pool, connection, loop=self.loop)
         intents = discord.Intents.default()
         intents.members = True
@@ -76,7 +77,7 @@ class AmeliaBot(commands.Bot):
         guild = message.guild
         guild_id = guild.id
         cfg = self.servers.get(guild_id)
-        if isinstance(cfg, GuildConfig) and cfg.auto_delete_commands:
+        if isinstance(cfg, GuildDB) and cfg.auto_delete_commands:
             try:
                 await message.delete(delay=5)
             except (discord.errors.NotFound, discord.errors.Forbidden, discord.errors.HTTPException):
@@ -112,7 +113,10 @@ class AmeliaBot(commands.Bot):
         await self.sync_servers()
 
     async def on_guild_join(self, guild: discord.Guild):
-        await self.pg.new_guild_config(guild.id)
+        try:
+            await self.pg.new_guild_config(guild.id)
+        except DuplicateEntity:
+            log.debug(f"Rejoined Guild: {guild.name} with existing configuration in use.")
 
     async def on_guild_remove(self, guild: discord.Guild):
         # We are purposely not removing configs here in case of rejoining.
@@ -125,15 +129,38 @@ class AmeliaBot(commands.Bot):
         log.debug(f"Server config shows {len(result)} Servers")
         return result
 
+    async def map_guild_configs(self, fetch_method: t.Callable) -> t.Dict[int, t.Any]:
+        objs = await fetch_method()
+        container = {o.guild_id: o for o in objs}
+        return container
+
+    async def sync_configs(self, dict: t.Dict[int, t.Any], method: t.Callable):
+        for guild in self.guilds:
+            if guild.id not in dict.keys():
+                try:
+                    await method(guild.id)
+                except DuplicateEntity:
+                    pass
+
     async def sync_servers(self):
         for guild in self.guilds:
             if guild.id not in self.servers.keys():
                 log.debug(f"Server not synced in Database. Syncing {guild.id}")
                 await self.pg.new_guild_config(guild.id)
 
+
+    async def notify_t(self, t: t.Type, container: t.Dict[int, t.Any], payload: PgNotify):
+        entity = payload.entity
+
+        if isinstance(entity, t):
+            if payload.action == PgActions.DELETE and entity.guild_id in self.servers.keys():
+                del container[entity.id]
+            else:
+                container[entity.guild_id] = entity
+
     async def _notify(self, payload: PgNotify):
         entity = payload.entity
-        if isinstance(entity, GuildConfig):
+        if isinstance(entity, GuildDB):
             if payload.action == PgActions.DELETE and entity.guild_id in self.servers.keys():
                 del self.servers[entity.id]
             else:

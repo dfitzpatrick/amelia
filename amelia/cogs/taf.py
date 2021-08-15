@@ -12,8 +12,13 @@ from datetime import datetime, timedelta
 from amelia import common
 from amelia.mixins.avwx import AVWX, AvwxEmptyResponseError, AvwxResponse
 from amelia.mixins.config import ConfigMixin
+from ameliapg.taf.models import TafDB, TafChannelDB
+from ameliapg.errors import DuplicateEntity
+from ameliapg.models import PgNotify
+from ameliapg import PgActions
 import re
 from amelia import AmeliaBot
+import typing as t
 
 log = logging.getLogger(__name__)
 
@@ -23,29 +28,69 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
         super(TAF, self).__init__()
         self.bot = bot
         self.time_format = '%b %d, %H:%M'
+        self.cfg: t.Dict[int, TafDB] = {}
+        self.taf_channels: t.Dict[int, t.List[discord.TextChannel]] = {}
 
-    def get_taf_channel(self, guild: discord.Guild) -> typing.Optional[discord.TextChannel]:
-        """
-        Retrieves the configured TAF channel from the json file if there is one.
-        This will default to a channel named 'metar' as part of the /flying/
-        Discord channel requests where this bot is mainly hosted.
-        Parameters
-        ----------
-        guild: Guild id in string form
-
-        Returns
-        -------
-        Optional[:class: discord.TextChannel]
-        """
-        guild_id_str = str(guild.id)
-
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild: discord.Guild):
         try:
-            ch_id = self.config_settings[guild_id_str]['channel']
-            ch = discord.utils.get(guild.text_channels, id=ch_id)
-            return ch
-        except KeyError:
-            ch = discord.utils.get(guild.text_channels, name='metar')
-            return ch
+            await self.bot.pg.new_taf_config(guild.id)
+        except DuplicateEntity:
+            log.debug(f"Rejoined Guild: {guild.name} with existing Metar Config")
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.bot.pg.register_listener(self._notify)
+        self.cfg = await self.bot.map_guild_configs(self.bot.pg.fetch_taf_configs)
+        log.debug(self.cfg)
+        await self.bot.sync_configs(self.cfg, self.bot.pg.new_taf_config)
+
+        chs = await self.bot.pg.fetch_all_taf_channels()
+        for c in chs:
+            if c.guild_id not in self.taf_channels.keys():
+                self.taf_channels[c.guild_id] = []
+            guild = self.bot.get_guild(c.guild_id)
+            if guild is None:
+                continue
+            tc = discord.utils.get(guild.text_channels, id=c.channel_id)
+            if tc is not None:
+                self.taf_channels[c.guild_id].append(tc)
+
+    def _channel_ids(self, guild_id: int) -> t.List[int]:
+        if not guild_id in self.taf_channels.keys():
+            return []
+        return [o.id for o in self.taf_channels[guild_id]]
+
+    def _channel_objs(self, guild_id: int) -> t.List[discord.TextChannel]:
+        if not guild_id in self.taf_channels.keys():
+            return []
+        return [o for o in self.taf_channels[guild_id]]
+
+    async def _taf_channel_notification(self, entity: TafChannelDB, action: str):
+        guild_id = entity.guild_id
+        if action == PgActions.DELETE or action == PgActions.UPDATE:
+            if guild_id not in self.taf_channels.keys():
+                return
+            chs = self.taf_channels[guild_id]
+            self.taf_channels[guild_id] = [o for o in chs if o.id != entity.channel_id]
+
+        if action == PgActions.DELETE:
+            return
+
+        if guild_id not in self.taf_channels.keys():
+            self.taf_channels[guild_id] = []
+
+        guild = self.bot.get_guild(guild_id)
+        if guild is None:
+            return
+        tc = discord.utils.get(guild.text_channels, id=entity.channel_id)
+        if tc is not None:
+            self.taf_channels[guild_id].append(tc)
+
+    async def _notify(self, payload: PgNotify):
+        await self.bot.notify_t(TafDB, self.cfg, payload)
+        if isinstance(payload.entity, TafChannelDB):
+            await self._taf_channel_notification(payload.entity, payload.action)
 
     def get_clouds(self, clouds: str) -> str:
         """
@@ -237,17 +282,17 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
             text=f"{ctx.author.display_name} | Not an official source for flight planning",
             icon_url=ctx.author.avatar_url
         )
-
-        taf_channel = self.get_taf_channel(ctx.guild)
-        taf_channel_id = taf_channel.id if taf_channel is not None else None
-
-        # Send to channel with auto delete if its not the taf channel
-        if ctx.channel.id != taf_channel_id:
-            await ctx.send(embed=embed, delete_after=120)
-
-        # Send to taf channel if it exists with no delete
-        if isinstance(taf_channel, discord.TextChannel):
-            await taf_channel.send(embed=embed)
+        # Send to channel with auto delete if its not the metar channel
+        restricted = self.cfg[ctx.guild.id].restrict_channel
+        if ctx.channel.id not in self._channel_ids(ctx.guild.id) and restricted:
+            delay = self.cfg[ctx.guild.id].delete_interval
+            await ctx.send(embed=embed, delete_after=delay)
+            if len(self.taf_channels.get(ctx.guild.id, [])) > 0:
+                ch = self.taf_channels[ctx.guild.id][0]
+                await ch.send(embed=embed)
+                await ctx.send(f"Your TAF is auto-moving to {ch.mention}", delete_after=delay)
+        else:
+            await ctx.send(embed=embed)
 
     @taf.error
     async def taf_error(self, ctx: commands.Context, error: typing.Any):
@@ -290,6 +335,8 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
             message = "This ICAO has no TAF information available."
         else:
             log.error(error)
+            embed = discord.Embed(title="TAF Unavailable", description="Unknown Error")
+            await ctx.send(embed=embed, delete_after=30)
             raise error
 
 
@@ -311,22 +358,21 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
         -------
         None
         """
-        guild_id_str = str(ctx.guild.id)
-
         if ch is None:
-            try:
-                del self.config_settings[guild_id_str]['channel']
-            except KeyError:
-                pass
-            await ctx.send("Removed TAF Channel", delete_after=10)
+            description = "\n".join(ch.mention for ch in self._channel_objs(ctx.guild.id))
+            embed = discord.Embed(title="Current TAF Channels", description=description)
+            await ctx.send(embed=embed, delete_after=20)
             return
 
-        if guild_id_str not in self.config_settings.keys():
-            self.config_settings[guild_id_str] = {}
-        self.config_settings[guild_id_str]['channel'] = ch.id
-        self.save_settings()
+        channel_ids = self._channel_ids(ctx.guild.id)
 
-        await ctx.send(f"TAF channel set to {ch.name}", delete_after=10)
+        if ch.id in channel_ids:
+            await self.bot.pg.remove_taf_channel(ch.id)
+            action = "Removed"
+        else:
+            await self.bot.pg.add_taf_channel(ctx.guild.id, ch.id)
+            action = "Added"
+        await ctx.send(f"{action} TAF Channel {ch.mention}", delete_after=10)
 
     @taf_channel_cmd.error
     async def metar_channel_cmd_error(self, ctx: commands.Context, error: commands.CommandError):

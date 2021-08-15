@@ -1,5 +1,4 @@
 import logging
-import math
 import textwrap
 import typing
 
@@ -7,11 +6,17 @@ import aiohttp
 import dateutil.parser
 import discord
 from discord.ext import commands
+
 commands.has_permissions()
 from amelia.mixins.avwx import AVWX, AvwxResponse, AvwxEmptyResponseError
 from amelia.mixins.config import ConfigMixin
 from amelia import common
 from amelia import AmeliaBot
+from ameliapg.metar.models import MetarDB, MetarChannelDB
+from ameliapg.errors import DuplicateEntity
+from ameliapg.models import PgNotify
+from ameliapg import PgActions
+import typing as t
 
 log = logging.getLogger(__name__)
 
@@ -19,21 +24,78 @@ class FlightRule(typing.NamedTuple):
     emoji: str
     name: str
 
-class Metar(ConfigMixin, AVWX, commands.Cog):
+class Metar(AVWX, commands.Cog):
     def __init__(self, bot: AmeliaBot):
         super(Metar, self).__init__()
         self.bot = bot
+        self.cfg: t.Dict[int, MetarDB] = {}
+        self.metar_channels: t.Dict[int, t.List[discord.TextChannel]] = {}
 
-    def get_metar_channel(self, guild: discord.Guild) -> typing.Optional[discord.TextChannel]:
-        guild_id_str = str(guild.id)
 
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild: discord.Guild):
         try:
-            ch_id = self.config_settings[guild_id_str]['channel']
-            ch = discord.utils.get(guild.text_channels, id=ch_id)
-            return ch
-        except KeyError:
-            ch = discord.utils.get(guild.text_channels, name='metar')
-            return ch
+            await self.bot.pg.new_metar_config(guild.id)
+        except DuplicateEntity:
+            log.debug(f"Rejoined Guild: {guild.name} with existing Metar Config")
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.bot.pg.register_listener(self._notify)
+        self.cfg = await self.bot.map_guild_configs(self.bot.pg.fetch_metar_configs)
+        log.debug(self.cfg)
+        await self.bot.sync_configs(self.cfg, self.bot.pg.new_metar_config)
+
+        chs = await self.bot.pg.fetch_all_metar_channels()
+        for c in chs:
+            if c.guild_id not in self.metar_channels.keys():
+                self.metar_channels[c.guild_id] = []
+            guild = self.bot.get_guild(c.guild_id)
+            if guild is None:
+                continue
+            tc = discord.utils.get(guild.text_channels, id=c.channel_id)
+            if tc is not None:
+                self.metar_channels[c.guild_id].append(tc)
+
+
+    def _channel_ids(self, guild_id: int) -> t.List[int]:
+        if not guild_id in self.metar_channels.keys():
+            return []
+        return [o.id for o in self.metar_channels[guild_id]]
+
+    def _channel_objs(self, guild_id: int) -> t.List[discord.TextChannel]:
+        if not guild_id in self.metar_channels.keys():
+            return []
+        return [o for o in self.metar_channels[guild_id]]
+
+    async def _metar_channel_notification(self, entity: MetarChannelDB, action: str):
+        guild_id = entity.guild_id
+        if action == PgActions.DELETE or action == PgActions.UPDATE:
+            if guild_id not in self.metar_channels.keys():
+                return
+            chs = self.metar_channels[guild_id]
+            self.metar_channels[guild_id] = [o for o in chs if o.id != entity.channel_id]
+
+        if action == PgActions.DELETE:
+            return
+
+        if guild_id not in self.metar_channels.keys():
+            self.metar_channels[guild_id] = []
+
+        guild = self.bot.get_guild(guild_id)
+        if guild is None:
+            return
+        tc = discord.utils.get(guild.text_channels, id=entity.channel_id)
+        if tc is not None:
+            self.metar_channels[guild_id].append(tc)
+
+
+
+    async def _notify(self, payload: PgNotify):
+        await self.bot.notify_t(MetarDB, self.cfg, payload)
+        if isinstance(payload.entity, MetarChannelDB):
+            await self._metar_channel_notification(payload.entity, payload.action)
+
 
 
     def flight_rules(self, rule: str) -> FlightRule:
@@ -162,17 +224,18 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
             text=f"{ctx.author.display_name} | Not an official source for flight planning",
             icon_url=ctx.author.avatar_url,
         )
-
-        metar_channel = self.get_metar_channel(ctx.guild)
-        metar_channel_id = metar_channel.id if metar_channel is not None else None
-
         # Send to channel with auto delete if its not the metar channel
-        if ctx.channel.id != metar_channel_id:
-            await ctx.send(embed=embed, delete_after=120)
+        if ctx.channel.id not in self._channel_ids(ctx.guild.id):
+            delay = self.cfg[ctx.guild.id].delete_interval
+            await ctx.send(embed=embed, delete_after=delay)
+            if len(self.metar_channels.get(ctx.guild.id, [])) > 0:
+                ch = self.metar_channels[ctx.guild.id][0]
+                await ch.send(embed=embed)
+                await ctx.send(f"Your Metar is auto-moving to {ch.mention}", delete_after=delay)
+        else:
+            await ctx.send(embed=embed)
 
-        # Send to metar channel if it exists with no delete
-        if isinstance(metar_channel, discord.TextChannel):
-            await metar_channel.send(embed=embed)
+
 
 
 
@@ -213,31 +276,36 @@ class Metar(ConfigMixin, AVWX, commands.Cog):
         elif isinstance(error, aiohttp.ClientResponseError):
             message = "The API service is currently down. Try again later"
         else:
+            embed = discord.Embed(title="Metar Unavailable", description="Unknown Error")
+            await ctx.send(embed=embed, delete_after=30)
             log.error(error)
             raise error
+
 
         embed = discord.Embed(title="Metar Unavailable", description=message)
         await ctx.send(embed=embed, delete_after=30)
 
     @metar.command(name='channel')
-    @commands.has_guild_permissions(administrator=True)
+    @commands.has_guild_permissions(manage_channels=True)
     async def metar_channel_cmd(self, ctx: commands.Context, ch: discord.TextChannel = None):
-        guild_id_str = str(ctx.guild.id)
 
         if ch is None:
-            try:
-                del self.config_settings[guild_id_str]['channel']
-            except KeyError:
-                pass
-            await ctx.send("Removed Metar Channel", delete_after=10)
+            description = "\n".join(ch.mention for ch in self._channel_objs(ctx.guild.id))
+            embed = discord.Embed(title="Current Metar Channels", description=description)
+            await ctx.send(embed=embed, delete_after=20)
             return
 
-        if guild_id_str not in self.config_settings.keys():
-            self.config_settings[guild_id_str] = {}
-        self.config_settings[guild_id_str]['channel'] = ch.id
-        self.save_settings()
+        channel_ids = self._channel_ids(ctx.guild.id)
 
-        await ctx.send(f"Metar channel set to {ch.name}", delete_after=10)
+        if ch.id in channel_ids:
+            await self.bot.pg.remove_metar_channel(ch.id)
+            action = "Removed"
+        else:
+            await self.bot.pg.add_metar_channel(ctx.guild.id, ch.id)
+            action = "Added"
+        await ctx.send(f"{action} Metar Channel {ch.mention}", delete_after=10)
+
+
 
     @metar_channel_cmd.error
     async def metar_channel_cmd_error(self, ctx: commands.Context, error: commands.CommandError):
