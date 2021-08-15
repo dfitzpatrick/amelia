@@ -42,7 +42,6 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
     async def on_ready(self):
         self.bot.pg.register_listener(self._notify)
         self.cfg = await self.bot.map_guild_configs(self.bot.pg.fetch_taf_configs)
-        log.debug(self.cfg)
         await self.bot.sync_configs(self.cfg, self.bot.pg.new_taf_config)
 
         chs = await self.bot.pg.fetch_all_taf_channels()
@@ -204,7 +203,11 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
         """
         await ctx.trigger_typing()
         try:
-            m = await self.fetch_taf(icao)
+            icao_code = icao.upper()
+            if icao_code == 'KMOO':
+                # easter egg
+                icao_code = 'KDVT'
+            m = await self.fetch_taf(icao_code)
         except AvwxEmptyResponseError as e:
             title = 'Missing TAF'
             description = 'This ICAO has no TAF Information'
@@ -233,7 +236,7 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
             **__Taf Valid {valid_fmt}Z__**  
             *Note: This report was generated {elapsed} afterwards.*
             
-            [Click here for more information](http://theflying.life/airports/{icao})
+            [Click here for more information](http://theflying.life/airports/{icao_code})
     
             {raw}
             """

@@ -43,7 +43,6 @@ class Metar(AVWX, commands.Cog):
     async def on_ready(self):
         self.bot.pg.register_listener(self._notify)
         self.cfg = await self.bot.map_guild_configs(self.bot.pg.fetch_metar_configs)
-        log.debug(self.cfg)
         await self.bot.sync_configs(self.cfg, self.bot.pg.new_metar_config)
 
         chs = await self.bot.pg.fetch_all_metar_channels()
@@ -199,7 +198,7 @@ class Metar(AVWX, commands.Cog):
             **__Metar Valid {valid_fmt}Z__**
             *Note: This report was generated {elapsed} afterwards.*
             
-            [Click here for more information](http://theflying.life/airports/{icao})
+            [Click here for more information](http://theflying.life/airports/{icao_code})
             
             {raw}
             """
