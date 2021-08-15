@@ -40,7 +40,7 @@ class Metar(AVWX, commands.Cog):
             log.debug(f"Rejoined Guild: {guild.name} with existing Metar Config")
 
     @commands.Cog.listener()
-    async def on_ready(self):
+    async def on_safe_to_sync(self):
         self.bot.pg.register_listener(self._notify)
         self.cfg = await self.bot.map_guild_configs(self.bot.pg.fetch_metar_configs)
         await self.bot.sync_configs(self.cfg, self.bot.pg.new_metar_config)

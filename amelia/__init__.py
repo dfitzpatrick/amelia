@@ -111,6 +111,7 @@ class AmeliaBot(commands.Bot):
         await self.pg.start_listening()
         self.servers = await self._populate_server_config()
         await self.sync_servers()
+        self.dispatch("safe_to_sync")
 
     async def on_guild_join(self, guild: discord.Guild):
         try:

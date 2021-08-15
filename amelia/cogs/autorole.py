@@ -22,7 +22,7 @@ class AutoRoleCog(commands.Cog):
         self.auto_roles: t.Dict[int, t.Dict[int, discord.Role]] = {}
 
     @commands.Cog.listener()
-    async def on_ready(self):
+    async def on_safe_to_sync(self):
         auto_roles = await self.bot.pg.fetch_all_auto_roles()
         await self._load_to_cache(auto_roles)
 
