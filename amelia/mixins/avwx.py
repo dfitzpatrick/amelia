@@ -51,7 +51,7 @@ class AVWX:
             response = await session.get(url, **kwargs)
             status = response.status
             result = await response.json()
-            log.debug(f"FETCH {status}: {url} - {result}")
+            log.debug(f"FETCH {status}: {url}")
             if result is None:
                 raise AvwxEmptyResponseError
             return result
