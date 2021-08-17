@@ -16,6 +16,15 @@ if t.TYPE_CHECKING:
 
     from ameliapg.models import PgNotify
 
+import sentry_sdk
+sentry_sdk.init(
+    os.environ['SENTRY_INGEST'],
+
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0
+)
 
 BASE_DIR = os.path.normpath(os.path.dirname(os.path.realpath(__file__)))
 
@@ -77,6 +86,8 @@ class AmeliaBot(commands.Bot):
         guild = message.guild
         guild_id = guild.id
         cfg = self.servers.get(guild_id)
+        log.debug(cfg)
+        log.debug(isinstance(cfg, GuildDB))
         if isinstance(cfg, GuildDB) and cfg.auto_delete_commands:
             try:
                 await message.delete(delay=5)
