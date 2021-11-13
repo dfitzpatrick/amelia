@@ -188,10 +188,13 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
 
 
 
-    @commands.group(name='taf', invoke_without_command=True)
-    async def taf(self, ctx: commands.Context, icao: str):
+    @commands.command(name='taf')
+    async def taf(
+            self, ctx: commands.Context,
+            icao: str = commands.Option(description="The ICAO code for the airport")
+    ):
         """
-        Retrieves a TAF from the ICAO provided.
+        Fetches the current TAF forecast from the supplied icao.
         Parameters
         ----------
         ctx: Discord Context Class
@@ -283,7 +286,7 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
         embed.timestamp = valid_time
         embed.set_footer(
             text=f"{ctx.author.display_name} | Not an official source for flight planning",
-            icon_url=ctx.author.avatar_url
+            icon_url=ctx.author.display_avatar.url
         )
         # Send to channel with auto delete if its not the metar channel
         restricted = self.cfg[ctx.guild.id].restrict_channel
@@ -346,7 +349,11 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
         embed = discord.Embed(title="TAF Unavailable", description=message)
         await ctx.send(embed=embed, delete_after=30)
 
-    @taf.command(name='channel')
+    @commands.group()
+    async def taf_config(self, ctx):
+        pass
+
+    @taf_config.command(name='channel')
     @commands.has_guild_permissions(administrator=True)
     async def taf_channel_cmd(self, ctx: commands.Context, ch: discord.TextChannel = None):
         """

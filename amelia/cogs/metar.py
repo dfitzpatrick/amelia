@@ -144,10 +144,13 @@ class Metar(AVWX, commands.Cog):
         return result
 
 
-    @commands.group(name='metar', invoke_without_command=True)
-    async def metar(self, ctx: commands.Context, icao: str):
+    @commands.command()
+    async def metar(
+            self, ctx: commands.Context,
+            icao: str = commands.Option(description="The ICAO code for the airport")
+    ):
         """
-        Sends a discord.Embed to the channel that shows METAR information.
+        Fetches the urrent METAR observation from the supplied icao.
         Invoked by the following syntax:
         !metar ICAO
 
@@ -221,7 +224,7 @@ class Metar(AVWX, commands.Cog):
         embed.timestamp = valid_time
         embed.set_footer(
             text=f"{ctx.author.display_name} | Not an official source for flight planning",
-            icon_url=ctx.author.avatar_url,
+            icon_url=ctx.author.display_avatar.url,
         )
         # Send to channel with auto delete if its not the metar channel
         if ctx.channel.id not in self._channel_ids(ctx.guild.id):
@@ -280,11 +283,14 @@ class Metar(AVWX, commands.Cog):
             log.error(error)
             raise error
 
-
         embed = discord.Embed(title="Metar Unavailable", description=message)
         await ctx.send(embed=embed, delete_after=30)
 
-    @metar.command(name='channel')
+    @commands.group()
+    async def metar_config(self, ctx):
+        pass
+
+    @metar_config.command(name='channel')
     @commands.has_guild_permissions(manage_channels=True)
     async def metar_channel_cmd(self, ctx: commands.Context, ch: discord.TextChannel = None):
 

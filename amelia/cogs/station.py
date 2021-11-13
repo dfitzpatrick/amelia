@@ -86,10 +86,13 @@ class Station(AVWX, SunRiseSet, commands.Cog):
 
 
 
-    @commands.group(name='station', invoke_without_command=True)
-    async def station(self, ctx: commands.Context, icao: str):
+    @commands.command(name='station')
+    async def station(
+            self, ctx: commands.Context,
+            icao: str = commands.Option(description="The ICAO code for the airport")
+    ):
         """
-        Displays an embed with station information.
+        Displays helpful information about an airport including sunset times.
         Parameters
         ----------
         ctx
@@ -167,7 +170,7 @@ class Station(AVWX, SunRiseSet, commands.Cog):
 
         embed.set_footer(
             text=f"{ctx.author.display_name} | Not an official source for flight planning",
-            icon_url=ctx.author.avatar_url
+            icon_url=ctx.author.display_avatar.url
         )
         restricted = self.cfg[ctx.guild.id].restrict_channel
         if ctx.channel.id not in self._channel_ids(ctx.guild.id) and restricted:
@@ -225,7 +228,11 @@ class Station(AVWX, SunRiseSet, commands.Cog):
         embed = discord.Embed(title="Station Unavailable", description=message)
         await ctx.send(embed=embed, delete_after=30)
 
-    @station.command(name='channel')
+    @commands.group()
+    async def station_config(self, ctx):
+        pass
+
+    @station_config.command(name='channel')
     @commands.has_guild_permissions(administrator=True)
     async def station_channel_cmd(self, ctx: commands.Context, ch: discord.TextChannel = None):
         """

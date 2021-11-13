@@ -82,9 +82,7 @@ class AutoRoleCog(commands.Cog):
         return list(guild_roles.values())
 
 
-    @commands.Cog.listener()
-    async def on_testing_dispatch(self, message: str):
-        log.debug(f'in listener cog: {message}')
+
 
     @commands.bot_has_permissions(manage_roles=True)
     @commands.has_permissions(manage_roles=True)
@@ -98,7 +96,6 @@ class AutoRoleCog(commands.Cog):
 
         name = role.name
         key = ctx.guild.id
-        in_cache = self.role_in_cache(role)
         if not self.role_in_cache(role):
             log.debug('adding')
             await self.bot.pg.add_auto_role_to_guild(key, role.id)

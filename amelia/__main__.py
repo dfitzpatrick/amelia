@@ -25,15 +25,35 @@ extensions = (
 def bot_task_callback(future: asyncio.Future):
     raise future.exception()
 
+#bot = commands.Bot(
+#        intents=discord.Intents(members=True, guilds=True, messages=True),
+#        command_prefix='!',
+#        slash_commands=True
+#    )
+
+#@bot.command()
+#async def teststuff(ctx, msg: str = commands.Option(description="Say a message")):
+#    await ctx.send(msg)
+
+#bot.run(os.environ['AMELIA_TOKEN'])
 
 async def run_bot():
     dsn = os.environ['DSN']
     token = os.environ['AMELIA_TOKEN']
     conn = await asyncpg.connect(dsn)
     pool = await asyncpg.create_pool(dsn)
-    intents = discord.Intents.default()
-    intents.members = True
-    bot = AmeliaBot(pool, conn, intents=intents, command_prefix='!', extensions=extensions)
+    intents = discord.Intents.all()
+
+    bot = AmeliaBot(
+        pool,
+        conn,
+        intents=discord.Intents(members=True, guilds=True, messages=True),
+        command_prefix='!',
+        extensions=extensions,
+        slash_commands=True
+    )
+
+
 
     try:
         await bot.start(token)

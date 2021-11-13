@@ -56,10 +56,8 @@ class AmeliaBot(commands.Bot):
 
     def __init__(self, pool, connection, **kwargs):
         super(AmeliaBot, self).__init__(**kwargs)
-        self.servers: t.Dict[int, ] = {}
+        self.servers: t.Dict[int, GuildDB] = {}
         self.pg: AmeliaPgService = AmeliaPgService(pool, connection, loop=self.loop)
-        intents = discord.Intents.default()
-        intents.members = True
 
         for ext in kwargs.get('extensions', ()):
             self._load_extension(ext)
@@ -86,14 +84,12 @@ class AmeliaBot(commands.Bot):
         guild = message.guild
         guild_id = guild.id
         cfg = self.servers.get(guild_id)
-        log.debug(cfg)
-        log.debug(isinstance(cfg, GuildDB))
+
         if isinstance(cfg, GuildDB) and cfg.auto_delete_commands:
             try:
                 await message.delete(delay=5)
             except (discord.errors.NotFound, discord.errors.Forbidden, discord.errors.HTTPException):
                 log.error(f"Could not auto-delete command in guild: {guild.name} / {guild.id}")
-
 
     async def hook_command_completion(self, ctx:commands.Context):
         try:
@@ -112,12 +108,6 @@ class AmeliaBot(commands.Bot):
             await self.delete_message_if_configured(ctx.message)
             raise error
 
-
-
-    async def post_dispatch(self, event, *args, **kwargs):
-        if event == "testing_dispatch" or event == "command_completion":
-            log.debug(f"in post dispatch: {event}")
-
     async def on_ready(self):
         await self.pg.start_listening()
         self.servers = await self._populate_server_config()
@@ -126,7 +116,8 @@ class AmeliaBot(commands.Bot):
 
     async def on_guild_join(self, guild: discord.Guild):
         try:
-            await self.pg.new_guild_config(guild.id)
+            guild_db = await self.pg.new_guild_config(guild.id)
+            self.servers[guild.id] = guild_db
         except DuplicateEntity:
             log.debug(f"Rejoined Guild: {guild.name} with existing configuration in use.")
 
@@ -135,7 +126,7 @@ class AmeliaBot(commands.Bot):
         pass
 
 
-    async def _populate_server_config(self) -> t.Dict[int, GuildConfig]:
+    async def _populate_server_config(self) -> t.Dict[int, GuildDB]:
         servers = await self.pg.get_servers()
         result = {s.guild_id:s for s in servers}
         log.debug(f"Server config shows {len(result)} Servers")

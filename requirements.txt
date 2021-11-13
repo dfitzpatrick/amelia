@@ -1,5 +1,6 @@
 aiohttp==3.7.4.post0
--e git+https://github.com/dfitzpatrick/ameliapg.git@0f62fa9084b80330d483dd015a49d72574c72a32#egg=ameliapg
+git+git://github.com/iDevision/enhanced-discord.py.git@2126a2413a9dc93580ac345acceb9fe2cabc87fb#egg=discord-py
+git+https://github.com/dfitzpatrick/ameliapg.git@0f62fa9084b80330d483dd015a49d72574c72a32#egg=ameliapg
 async-timeout==3.0.1
 asyncpg==0.23.0
 atomicwrites==1.4.0
@@ -7,13 +8,12 @@ attrs==21.2.0
 certifi==2021.5.30
 chardet==4.0.0
 colorama==0.4.4
-discord.py==1.7.3
+discord.py==2.0.0a3664+g2126a24
 idna==3.2
 iniconfig==1.1.1
 multidict==5.1.0
 packaging==20.9
 pluggy==0.13.1
-psycopg2 @ file:///C:/Users/dfitz/Downloads/psycopg2-2.9.1-cp38-cp38-win_amd64.whl
 psycopg2-binary==2.9.1
 py==1.10.0
 pydantic==1.8.2
@@ -32,3 +32,4 @@ typing-extensions==3.10.0.0
 urllib3==1.26.6
 yarl==1.6.3
 yoyo-migrations==7.3.2
+
