@@ -13,6 +13,7 @@ from amelia.mixins.config import ConfigMixin
 from amelia import common
 from amelia import AmeliaBot
 from ameliapg.metar.models import MetarDB, MetarChannelDB
+from ameliapg.server.models import GuildDB
 from ameliapg.errors import DuplicateEntity
 from ameliapg.models import PgNotify
 from ameliapg import PgActions
@@ -33,11 +34,26 @@ class Metar(AVWX, commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_guild_join(self, guild: discord.Guild):
+    async def on_new_guild_config(self, guild_db: GuildDB):
+        id = guild_db.guild_id
+        metar_db = None
         try:
-            await self.bot.pg.new_metar_config(guild.id)
+            metar_db = await self.bot.pg.new_metar_config(id)
         except DuplicateEntity:
-            log.debug(f"Rejoined Guild: {guild.name} with existing Metar Config")
+            metar_db = await self.bot.pg.fetch_metar_config(id)
+            log.debug(f"Rejoined Guild: {id} with existing Metar Config")
+        finally:
+            self.metar_channels[id] = await self.fetch_metar_channels(id)
+            self.cfg[id] = metar_db
+
+
+    async def fetch_metar_channels(self, guild_id) -> t.List[discord.TextChannel]:
+        guild = self.bot.get_guild(guild_id)
+        if guild is None:
+            return []
+        channels = await self.bot.pg.fetch_metar_channels(guild_id)
+        channels = map(lambda c: discord.utils.get(guild.text_channels, id=c.channel_id), channels)
+        return [c for c in channels if c is not None]
 
     @commands.Cog.listener()
     async def on_safe_to_sync(self):
@@ -143,6 +159,10 @@ class Metar(AVWX, commands.Cog):
             result = 'Clear'
         return result
 
+    @commands.command()
+    async def slashy(self, ctx):
+        log.debug("testslash")
+        await ctx.send('foo')
 
     @commands.command()
     async def metar(
@@ -237,10 +257,6 @@ class Metar(AVWX, commands.Cog):
         else:
             await ctx.send(embed=embed)
 
-
-
-
-
     @metar.error
     async def metar_error(self, ctx: commands.Context, error: typing.Any):
         """
@@ -278,7 +294,7 @@ class Metar(AVWX, commands.Cog):
         elif isinstance(error, aiohttp.ClientResponseError):
             message = "The API service is currently down. Try again later"
         else:
-            embed = discord.Embed(title="Metar Unavailable", description="Unknown Error")
+            embed = discord.Embed(title="Metar Unavailable", description=message)
             await ctx.send(embed=embed, delete_after=30)
             log.error(error)
             raise error
@@ -318,7 +334,7 @@ class Metar(AVWX, commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_command_completion(self, ctx: commands.Context):
+    async def on_command_completionfdsfsd(self, ctx: commands.Context):
         """
         Simple Housekeeping function. Annotates the command with feedback that
         it completed correctly, and if permissioned for, will remove the command.
@@ -335,8 +351,9 @@ class Metar(AVWX, commands.Cog):
             return
         await self.bot.hook_command_completion(ctx)
 
+
     @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
+    async def on_command_errordfgghd(self, ctx: commands.Context, error: commands.CommandError):
         """
             Simple Housekeeping function. Annotates the command with feedback that
             it failed, and if permissioned for, will remove the command.

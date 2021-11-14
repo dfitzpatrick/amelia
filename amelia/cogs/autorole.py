@@ -86,7 +86,7 @@ class AutoRoleCog(commands.Cog):
 
     @commands.bot_has_permissions(manage_roles=True)
     @commands.has_permissions(manage_roles=True)
-    @commands.group('autorole', invoke_without_command=True)
+    @commands.command('autorole')
     async def auto_role_cmd(self, ctx: commands.Context, role: discord.Role = None):
         if role is None:
             description = "\n".join(r.name for r in self.cached_guild_roles(ctx.guild.id))
@@ -105,7 +105,12 @@ class AutoRoleCog(commands.Cog):
             await self.bot.pg.remove_auto_role_from_guild(role.id)
             await ctx.send(f"Removed {name} from AutoRole", delete_after=5)
 
-    @auto_role_cmd.command(name='sync')
+    @commands.group()
+    async def autorole_config(self, ctx):
+        pass
+
+    @commands.has_permissions(manage_roles=True)
+    @autorole_config.command(name='sync')
     async def autorole_sync(self, ctx: commands.Context):
         """
         Syncs any added autoroles with members. This is explicit in case an
@@ -129,16 +134,21 @@ class AutoRoleCog(commands.Cog):
                 if r not in m.roles:
                     await m.add_roles(r)
 
+    async def _default_error_handler(self, ctx: commands.Context, error: commands.CommandError):
+        if isinstance(error, commands.BotMissingPermissions):
+            s = "Bot is missing permissions to manage roles. Command ignored"
+            await ctx.reply(s)
+
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.reply("You do not have the required permissions.")
 
     @auto_role_cmd.error
     async def auto_role_cmd_error(self, ctx: commands.Context, error: commands.CommandError):
-        if isinstance(error, commands.BotMissingPermissions):
-            s = "Bot is missing permissions to manage roles. Command ignored"
-            await ctx.send(s, delete_after=5)
+        await self._default_error_handler(ctx, error)
 
-        if isinstance(error, commands.MissingPermissions):
-            await ctx.author.send("You do not have the required permissions.")
-
+    @autorole_sync.error
+    async def auto_role_sync_error(self, ctx: commands.Context, error: commands.CommandError):
+        await self._default_error_handler(ctx, error)
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):

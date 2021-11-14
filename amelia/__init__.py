@@ -53,22 +53,13 @@ log = logging.getLogger(__name__)
 
 class AmeliaBot(commands.Bot):
 
-
     def __init__(self, pool, connection, **kwargs):
-        super(AmeliaBot, self).__init__(**kwargs)
+        super(AmeliaBot, self).__init__(slash_command_guilds=[734183623707721874], **kwargs)
         self.servers: t.Dict[int, GuildDB] = {}
         self.pg: AmeliaPgService = AmeliaPgService(pool, connection, loop=self.loop)
-
         for ext in kwargs.get('extensions', ()):
             self._load_extension(ext)
 
-
-    async def get_prefix(self, message: discord.Message):
-        default = '!'
-        server = self.servers.get(message.guild.id)
-        if server is None:
-            return default
-        return server.delimiter
 
     def _load_extension(self, name):
         try:
@@ -115,11 +106,15 @@ class AmeliaBot(commands.Bot):
         self.dispatch("safe_to_sync")
 
     async def on_guild_join(self, guild: discord.Guild):
+        guild_db = None
         try:
             guild_db = await self.pg.new_guild_config(guild.id)
             self.servers[guild.id] = guild_db
         except DuplicateEntity:
+            guild_db = await self.pg.get_guild_config(guild.id)
             log.debug(f"Rejoined Guild: {guild.name} with existing configuration in use.")
+        finally:
+            self.dispatch('new_guild_config', guild_db)
 
     async def on_guild_remove(self, guild: discord.Guild):
         # We are purposely not removing configs here in case of rejoining.

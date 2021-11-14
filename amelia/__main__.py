@@ -37,6 +37,13 @@ def bot_task_callback(future: asyncio.Future):
 
 #bot.run(os.environ['AMELIA_TOKEN'])
 
+def get_guild_prefix(bot: AmeliaBot, message: discord.Message):
+    default = '!'
+    server = bot.servers.get(message.guild.id)
+    if server is None:
+        return default
+    return server.delimiter
+
 async def run_bot():
     dsn = os.environ['DSN']
     token = os.environ['AMELIA_TOKEN']
@@ -48,7 +55,7 @@ async def run_bot():
         pool,
         conn,
         intents=discord.Intents(members=True, guilds=True, messages=True),
-        command_prefix='!',
+        command_prefix=get_guild_prefix,
         extensions=extensions,
         slash_commands=True
     )
