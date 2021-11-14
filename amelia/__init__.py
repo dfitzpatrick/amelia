@@ -54,7 +54,7 @@ log = logging.getLogger(__name__)
 class AmeliaBot(commands.Bot):
 
     def __init__(self, pool, connection, **kwargs):
-        super(AmeliaBot, self).__init__(slash_command_guilds=[734183623707721874], **kwargs)
+        super(AmeliaBot, self).__init__(**kwargs)
         self.servers: t.Dict[int, GuildDB] = {}
         self.pg: AmeliaPgService = AmeliaPgService(pool, connection, loop=self.loop)
         for ext in kwargs.get('extensions', ()):
