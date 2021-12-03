@@ -206,7 +206,7 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
     @commands.command(name='taf')
     async def taf(
             self, ctx: commands.Context,
-            icao: str = commands.Option(description="The ICAO code for the airport")
+            icao: str = commands.Option(description="The ICAO code for the airport. Ex: KLGB")
     ):
         """
         Fetches the current TAF forecast from the supplied icao.
@@ -304,8 +304,9 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
             icon_url=ctx.author.display_avatar.url
         )
         # Send to channel with auto delete if its not the metar channel
+        channel_ids = self._channel_ids(ctx.guild.id)
         restricted = self.cfg[ctx.guild.id].restrict_channel
-        if ctx.channel.id not in self._channel_ids(ctx.guild.id) and restricted:
+        if len(channel_ids) > 0 and ctx.channel.id not in channel_ids and restricted:
             delay = self.cfg[ctx.guild.id].delete_interval
             await ctx.send(embed=embed, delete_after=delay)
             if len(self.taf_channels.get(ctx.guild.id, [])) > 0:
@@ -369,21 +370,15 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
         pass
 
     @taf_config.command(name='channel')
-    @commands.has_guild_permissions(administrator=True)
-    async def taf_channel_cmd(self, ctx: commands.Context, ch: discord.TextChannel = None):
-        """
-        Command that will set the given TAF channel to another channel and echo
-        all responses back there
-        Parameters
-        ----------
-        ctx: Discord Context Class
-        ch: a discord.TextChannel of the channel to set to
-
-        Returns
-        -------
-        None
-        """
-        if ch is None:
+    @commands.has_guild_permissions(manage_channels=True)
+    async def taf_channel_cmd(self,
+        ctx: commands.Context,
+        channel: discord.TextChannel = commands.Option(
+            default=None,
+            description="The text channel to add/remove")
+    ):
+        """Adds/Removes a channel where Tafs will be used. No Argument shows a list of channels"""
+        if channel is None:
             description = "\n".join(ch.mention for ch in self._channel_objs(ctx.guild.id))
             embed = discord.Embed(title="Current TAF Channels", description=description)
             await ctx.send(embed=embed, delete_after=20)
@@ -391,13 +386,13 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
 
         channel_ids = self._channel_ids(ctx.guild.id)
 
-        if ch.id in channel_ids:
-            await self.bot.pg.remove_taf_channel(ch.id)
+        if channel.id in channel_ids:
+            await self.bot.pg.remove_taf_channel(channel.id)
             action = "Removed"
         else:
-            await self.bot.pg.add_taf_channel(ctx.guild.id, ch.id)
+            await self.bot.pg.add_taf_channel(ctx.guild.id, channel.id)
             action = "Added"
-        await ctx.send(f"{action} TAF Channel {ch.mention}", delete_after=10)
+        await ctx.send(f"{action} TAF Channel {channel.mention}", delete_after=10)
 
     @taf_channel_cmd.error
     async def metar_channel_cmd_error(self, ctx: commands.Context, error: commands.CommandError):

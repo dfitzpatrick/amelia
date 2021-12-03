@@ -52,6 +52,7 @@ class AVWX:
             status = response.status
             result = await response.json()
             log.debug(f"FETCH {status}: {url}")
+            log.debug(result)
             if result is None:
                 raise AvwxEmptyResponseError
             return result

@@ -160,14 +160,9 @@ class Metar(AVWX, commands.Cog):
         return result
 
     @commands.command()
-    async def slashy(self, ctx):
-        log.debug("testslash")
-        await ctx.send('foo')
-
-    @commands.command()
     async def metar(
             self, ctx: commands.Context,
-            icao: str = commands.Option(description="The ICAO code for the airport")
+            icao: str = commands.Option(description="The ICAO code for the airport. Ex: KLGB")
     ):
         """
         Fetches the urrent METAR observation from the supplied icao.
@@ -206,7 +201,7 @@ class Metar(AVWX, commands.Cog):
         valid_time = dateutil.parser.parse(m['time']['dt'])
         elapsed = common.td_format(now - valid_time)
         valid_fmt = valid_time.strftime("%H:%M")
-        altimeter = m['translate']['altimeter']
+        altimeter = m['translate']['altimeter'] or "Not Reported"
         wind = m['translate']['wind'] or 'Calm'
         clouds = self.fetch_clouds(m)
         visibility = m['translate']['visibility'] or "Not Reported"
@@ -247,7 +242,9 @@ class Metar(AVWX, commands.Cog):
             icon_url=ctx.author.display_avatar.url,
         )
         # Send to channel with auto delete if its not the metar channel
-        if ctx.channel.id not in self._channel_ids(ctx.guild.id):
+        channel_ids = self._channel_ids(ctx.guild.id)
+        restricted = self.cfg[ctx.guild.id].restrict_channel
+        if len(channel_ids) > 0 and ctx.channel.id not in channel_ids and restricted:
             delay = self.cfg[ctx.guild.id].delete_interval
             await ctx.send(embed=embed, delete_after=delay)
             if len(self.metar_channels.get(ctx.guild.id, [])) > 0:
@@ -308,9 +305,16 @@ class Metar(AVWX, commands.Cog):
 
     @metar_config.command(name='channel')
     @commands.has_guild_permissions(manage_channels=True)
-    async def metar_channel_cmd(self, ctx: commands.Context, ch: discord.TextChannel = None):
+    async def metar_channel_cmd(self,
+        ctx: commands.Context,
+        channel: discord.TextChannel = commands.Option(
+            default=None,
+            description="The text channel to add/remove"
+        )
+    ):
+        """Adds/Removes a channel where Metars will be used. No Argument shows a list of channels"""
 
-        if ch is None:
+        if channel is None:
             description = "\n".join(ch.mention for ch in self._channel_objs(ctx.guild.id))
             embed = discord.Embed(title="Current Metar Channels", description=description)
             await ctx.send(embed=embed, delete_after=20)
@@ -318,13 +322,13 @@ class Metar(AVWX, commands.Cog):
 
         channel_ids = self._channel_ids(ctx.guild.id)
 
-        if ch.id in channel_ids:
-            await self.bot.pg.remove_metar_channel(ch.id)
+        if channel.id in channel_ids:
+            await self.bot.pg.remove_metar_channel(channel.id)
             action = "Removed"
         else:
-            await self.bot.pg.add_metar_channel(ctx.guild.id, ch.id)
+            await self.bot.pg.add_metar_channel(ctx.guild.id, channel.id)
             action = "Added"
-        await ctx.send(f"{action} Metar Channel {ch.mention}", delete_after=10)
+        await ctx.send(f"{action} Metar Channel {channel.mention}", delete_after=10)
 
 
 
@@ -334,7 +338,7 @@ class Metar(AVWX, commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_command_completionfdsfsd(self, ctx: commands.Context):
+    async def on_command_completion(self, ctx: commands.Context):
         """
         Simple Housekeeping function. Annotates the command with feedback that
         it completed correctly, and if permissioned for, will remove the command.
@@ -353,7 +357,7 @@ class Metar(AVWX, commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_command_errordfgghd(self, ctx: commands.Context, error: commands.CommandError):
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
         """
             Simple Housekeeping function. Annotates the command with feedback that
             it failed, and if permissioned for, will remove the command.

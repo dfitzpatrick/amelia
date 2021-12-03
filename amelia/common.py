@@ -1,7 +1,9 @@
 import typing
+from typing import Union, Tuple
 from datetime import datetime, timedelta
 import dateutil.parser
 import discord
+import asyncio
 
 TFL_URL = 'http://theflying.life'
 
@@ -99,3 +101,4 @@ def get_member_avatar_url(member: discord.Member) -> str:
     id = member.id
 
     return f"{base}/avatars/{id}/user_avatar.png"
+
