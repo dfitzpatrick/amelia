@@ -6,8 +6,6 @@ import aiohttp
 import dateutil.parser
 import discord
 from discord.ext import commands
-
-commands.has_permissions()
 from amelia.mixins.avwx import AVWX, AvwxResponse, AvwxEmptyResponseError
 from amelia.mixins.config import ConfigMixin
 from amelia import common

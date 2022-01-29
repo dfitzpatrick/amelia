@@ -69,7 +69,9 @@ async def run_bot():
 
 
 
-loop =asyncio.get_event_loop()
+loop = asyncio.new_event_loop()
+
+
 try:
     future = asyncio.ensure_future(
         run_bot(),

@@ -190,7 +190,7 @@ class TAF(AVWX, ConfigMixin, commands.Cog):
         -------
 
         """
-        pattern = r'[0-9]+\/[0-9]+'
+        pattern = r'[0-9]{4}\/[0-9]{4}'
         match = re.search(pattern, forecast['sanitized'])
         if match is not None:
             match = match[0]
