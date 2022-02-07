@@ -175,8 +175,8 @@ class Station(AVWX, SunRiseSet, commands.Cog):
         embed = discord.Embed(title=f"{icao} Station Information", description=desc)
         embed.add_field(name=f'{flag_emoji} Location', value=f'{country}/{city}')
         embed.add_field(name=":regional_indicator_e: Elevation", value=f"{elev_ft}ft / {elev_m}m")
-        embed.add_field(name=':latitude: Latitude', value=lat)
-        embed.add_field(name=':longitude: Longitude', value=long)
+        embed.add_field(name='<:latitude:939941336931504128> Latitude', value=lat)
+        embed.add_field(name='<:longitude:940115654701371463> Longitude', value=long)
         embed.add_field(name=':sunrise_over_mountains: Civil Twilight Begins', value=ctb)
         embed.add_field(name=':sunrise: Sunrise', value=sunrise)
         embed.add_field(name=':city_sunset: Sunset', value=sunset),
