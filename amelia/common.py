@@ -6,6 +6,9 @@ import discord
 import asyncio
 
 TFL_URL = 'http://theflying.life'
+APP_COMMANDS_GUILDS = (
+   discord.Object(id=734183623707721874),
+)
 
 class FlightRule(typing.NamedTuple):
     emoji: str
