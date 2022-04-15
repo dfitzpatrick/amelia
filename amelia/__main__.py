@@ -11,9 +11,12 @@ log = logging.getLogger(__name__)
 
 
 extensions = (
-    'amelia.cogs.core',
+
+
     'amelia.weather',
     'amelia.autorole',
+    'amelia.cogs.core',
+    'amelia.cogs.facility',
 )
 
 

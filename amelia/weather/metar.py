@@ -58,7 +58,7 @@ class Metar(commands.Cog):
         embed = await self._get_metar_embed(icao, itx.user.display_name, itx.user.display_avatar.url)
         message = ""
         ephemeral = False
-        if not self.is_metar_channel(itx.channel):  # duck typing is ok here
+        if not self.is_metar_channel(itx.channel):
             ephemeral = True
             m = await self.send_to_first_allowed_channel(itx.guild_id, embed=embed)
             message = f"I am auto moving this to {m.channel.mention} so others may see as well."

@@ -1,8 +1,9 @@
-from typing import Dict, Any
-from dateutil import parser
-import aiohttp
-import asyncio
 import logging
+from typing import Dict, Any
+
+import aiohttp
+from dateutil import parser
+
 from amelia.weather.objects import MetarDTO, TafDTO, AirportDTO
 
 log = logging.getLogger(__name__)

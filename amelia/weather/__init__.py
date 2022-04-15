@@ -1,8 +1,7 @@
 
-from .metar import Metar
-from .misc import sunset_cmd
-from .taf import Taf
-
+from amelia.weather.taf import Taf
+from amelia.weather.metar import Metar
+from amelia.weather.misc import sunset_cmd
 
 async def setup(bot):
     await bot.add_cog(Metar(bot))

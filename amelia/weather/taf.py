@@ -1,11 +1,10 @@
 import discord
+from discord import app_commands, Interaction
 from discord.ext import commands
 
 from amelia.bot import AmeliaBot
 from amelia.tfl import TFLService, StationHasNoDataError
 from amelia.weather.cache import TafCache
-from discord import app_commands, Interaction
-
 from amelia.weather.config import TafConfigGroup
 from amelia.weather.services import make_taf_embed, depr
 

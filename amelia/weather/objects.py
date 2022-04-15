@@ -84,6 +84,14 @@ class Runway:
     width_ft: int
     text: str
 
+@dataclass
+class FAAPlate:
+    tpp_cycle: int
+    icao: str
+    code: str
+    name: str
+    pdf_name: str
+    plate_url: str
 
 @dataclass
 class AirportDTO:
@@ -103,3 +111,4 @@ class AirportDTO:
     type: str
     website: Optional[str]
     wiki: Optional[str]
+    plates: List[FAAPlate]
