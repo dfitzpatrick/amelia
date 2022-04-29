@@ -36,6 +36,8 @@ class Taf(commands.Cog):
     async def taf_txt_cmd(self, ctx: commands.Context, icao: str):
         _depr = depr('/taf')
         embed = await self._get_taf_embed(icao, ctx.author.display_name, ctx.author.display_avatar.url)
+        if ctx.author.id == 675262431190319104:
+            embed.set_thumbnail(url='http://clipart-library.com/image_gallery/n1592036.jpg')
         if self.is_taf_channel(ctx.channel):
             await ctx.reply(content=_depr, embed=embed)
         else:

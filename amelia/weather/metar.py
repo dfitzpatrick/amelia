@@ -42,6 +42,9 @@ class Metar(commands.Cog):
     async def metar_txt_cmd(self, ctx: commands.Context, icao: str):
         _depr = depr('/metar')
         embed = await self._get_metar_embed(icao, ctx.author.display_name, ctx.author.display_avatar.url)
+        # easter egg
+        if ctx.author.id == 675262431190319104:
+            embed.set_thumbnail(url='http://clipart-library.com/image_gallery/n1592036.jpg')
         if self.is_metar_channel(ctx.channel):
             await ctx.reply(content=_depr, embed=embed)
         else:
