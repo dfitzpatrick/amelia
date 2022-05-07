@@ -1,5 +1,5 @@
 import textwrap
-from datetime import datetime
+from datetime import datetime, timezone
 
 import discord
 
@@ -33,10 +33,15 @@ def flight_rules(rule: str) -> FlightRule:
 
 def make_metar_embed(metar_dto: MetarDTO) -> discord.Embed:
     icao = metar_dto.icao
+    now = datetime.now(timezone.utc)
+    elapsed = common.td_format(now - metar_dto.valid)
+    warning = "\n\n**Warning: Last attempt to fetch new data __FAILED__. This data may be out of date.**"
+    warning = warning if not metar_dto.last_polling_succeeded else ''
     description = textwrap.dedent(
         f"""
-         **__Metar Valid {metar_dto.valid.strftime('%H:%M')}Z__**
-            [Click here for more information](http://theflying.life/airports/{icao})
+         **__Metar Valid {metar_dto.valid.strftime('%m/%d %H:%M')}Z__**
+            {elapsed} ago
+            [Click here for more information](http://theflying.life/airports/{icao}) {warning}
             
             {metar_dto.raw_text}
             """
@@ -57,11 +62,16 @@ def make_metar_embed(metar_dto: MetarDTO) -> discord.Embed:
 
 def make_taf_embed(taf_dto: TafDTO) -> discord.Embed:
     icao = taf_dto.station_id.upper()
+    now = datetime.now(timezone.utc)
+    elapsed = common.td_format(now - taf_dto.issue_time)
+    warning = "\n\n**Warning: Last attempt to fetch new data __FAILED__. This data may be out of date.**"
+    warning = warning if not taf_dto.last_polling_succeeded else ''
     description = textwrap.dedent(
         f"""
-             **Taf Issued __{taf_dto.issue_time.strftime('%H:%M')}Z__**
-                [Click here for more information](http://theflying.life/airports/{icao})
-
+             **Taf Issued __{taf_dto.issue_time.strftime('%m/%d %H:%M')}Z__**
+                {elapsed} ago
+                [Click here for more information](http://theflying.life/airports/{icao}) {warning}
+                
                 {taf_dto.raw_text}
                 """
     )

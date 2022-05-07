@@ -52,7 +52,8 @@ class TFLService:
             altimeter=r['altimeter']['text'],
             raw_text=r['raw_text'],
             weather=[wx['text'] for wx in r['wx_codes']],
-            remarks=[f"{rmk['code']} - {rmk['text']}" for rmk in r['remarks']]
+            remarks=[f"{rmk['code']} - {rmk['text']}" for rmk in r['remarks']],
+            last_polling_succeeded=r['last_polling_succeeded']
         )
 
     async def fetch_taf(self, icao: str) -> TafDTO:
@@ -68,7 +69,8 @@ class TFLService:
             issue_time=parser.parse(r['issue_time']),
             bulletin_time=parser.parse(r['bulletin_time']),
             location=r['location'],
-            forecasts=r['forecasts']
+            forecasts=r['forecasts'],
+            last_polling_succeeded=r['last_polling_succeeded']
         )
 
     async def fetch_airport(self, icao: str) -> AirportDTO:

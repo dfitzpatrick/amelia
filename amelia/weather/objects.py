@@ -46,6 +46,7 @@ class MetarDTO:
     raw_text: str
     weather: List[str]
     remarks: List[str]
+    last_polling_succeeded: bool
 
 
 @dataclass
@@ -71,6 +72,7 @@ class TafDTO:
     bulletin_time: datetime
     location: Dict[str, Decimal]
     forecasts: List[Forecast]
+    last_polling_succeeded: bool
 
 @dataclass
 class Runway:
