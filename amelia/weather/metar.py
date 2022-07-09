@@ -9,7 +9,7 @@ from amelia.bot import AmeliaBot
 from amelia.tfl import TFLService, StationHasNoDataError
 from amelia.weather.cache import MetarCache
 from amelia.weather.config import MetarConfigGroup
-from amelia.weather.services import make_metar_embed, depr
+from amelia.weather.services import make_metar_embed, depr, get_digital_atis
 
 log = logging.getLogger(__name__)
 
@@ -24,9 +24,13 @@ class Metar(commands.Cog):
 
     async def _get_metar_embed(self, icao: str, display_name: str, avatar_url: str):
         metar = await self.service.fetch_metar(icao)
+        datis = await get_digital_atis(icao)
         embed = make_metar_embed(metar)
         text = f"{display_name} | Not an official source for flight planning"
         embed.set_footer(text=text, icon_url=avatar_url)
+        if datis is not None:
+            name = ":desktop: Digital ATIS"
+            embed.add_field(name=name, value=datis, inline=False)
         return embed
 
     def is_metar_channel(self, channel: discord.TextChannel):

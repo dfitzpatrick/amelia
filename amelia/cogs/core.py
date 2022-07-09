@@ -18,7 +18,6 @@ weather_cmds = [
 other_cmds = [
     '/sunset',
 ]
-
 class Core(Cog):
 
     def __init__(self, bot: AmeliaBot):

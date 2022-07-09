@@ -11,8 +11,6 @@ log = logging.getLogger(__name__)
 
 
 extensions = (
-
-
     'amelia.weather',
     'amelia.autorole',
     'amelia.cogs.core',

@@ -1,6 +1,8 @@
 import textwrap
 from datetime import datetime, timezone
+from typing import Optional
 
+import aiohttp
 import discord
 
 from amelia import common
@@ -107,4 +109,15 @@ def make_taf_embed(taf_dto: TafDTO) -> discord.Embed:
 
 def depr(command: str):
     return f"This command will no longer work with a future update. Please use {command} going forward"
+
+async def get_digital_atis(icao: str) -> Optional[str]:
+    target = f"http://datis.clowd.io/api/{icao}"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(target) as resp:
+            data = await resp.json()
+            if isinstance(data, list):
+                data = data[0]
+            if 'error' in data.keys():
+                return
+            return data['datis']
 
