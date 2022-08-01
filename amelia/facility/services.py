@@ -21,7 +21,6 @@ async def plate_to_image_bytes(plate: FAAPlate) -> BytesIO:
     pdf = await pdf_to_memory(plate.plate_url)
     image = convert_from_bytes(
         pdf.read(),
-        poppler_path=r'C:\Users\dfitz\poppler-22.04.0\Library\bin',
         first_page=1,
         last_page=1
     )[0]
