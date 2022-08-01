@@ -3,15 +3,16 @@ import logging
 import discord
 from discord import Interaction
 from discord import app_commands
+from typing import TYPE_CHECKING
 
-from amelia.bot import AmeliaBot
 from amelia.weather.cache import MetarCache, TafCache
-
+if TYPE_CHECKING:
+    from amelia.bot import AmeliaBot
 log = logging.getLogger(__name__)
 
 
 class MetarConfigGroup(app_commands.Group):
-    def __init__(self, bot: AmeliaBot, cache: MetarCache):
+    def __init__(self, bot: 'AmeliaBot', cache: MetarCache):
         super().__init__(name='metar', description='Configuration commands for METAR functionality')
         self.cache = cache
         self.bot = bot
@@ -45,7 +46,7 @@ class MetarConfigGroup(app_commands.Group):
 
 
 class TafConfigGroup(app_commands.Group):
-    def __init__(self, bot: AmeliaBot, cache: TafCache):
+    def __init__(self, bot: 'AmeliaBot', cache: TafCache):
         super().__init__(name='taf', description='Configuration commands for TAF functionality')
         self.cache = cache
         self.bot = bot

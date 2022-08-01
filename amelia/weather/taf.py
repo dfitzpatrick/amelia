@@ -2,22 +2,19 @@ import discord
 from discord import app_commands, Interaction
 from discord.ext import commands
 
-from amelia.bot import AmeliaBot
-from amelia.tfl import TFLService, StationHasNoDataError
 from amelia.weather.cache import TafCache
 from amelia.weather.config import TafConfigGroup
 from amelia.weather.services import make_taf_embed, depr
-
+from amelia import tfl
 
 class Taf(commands.Cog):
 
-    def __init__(self, bot: AmeliaBot):
+    def __init__(self, bot: 'AmeliaBot'):
         self.bot = bot
-        self.service = TFLService()
         self.cache = TafCache(bot)
 
     async def _get_taf_embed(self, icao: str, display_name: str, avatar_url: str):
-        taf = await self.service.fetch_taf(icao)
+        taf = await self.bot.tfl.fetch_taf(icao)
         embed = make_taf_embed(taf)
         text = f"{display_name} | Not an official source for flight planning"
         embed.set_footer(text=text, icon_url=avatar_url)
@@ -62,7 +59,7 @@ class Taf(commands.Cog):
     @taf_app_cmd.error
     async def taf_app_cmd_error(self, itx: Interaction, error):
         message = "Could not complete the request. Unknown error."
-        if isinstance(error.original, StationHasNoDataError):
+        if isinstance(error.original, tfl.StationHasNoDataError):
             icao = itx.data['options'][0]['value'].upper()
             message = f"**{icao}** is not currently reporting TAF"
         else:

@@ -1,11 +1,12 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import discord
 from ameliapg.metar.models import MetarDB, MetarChannelDB
 from ameliapg.taf.models import TafDB, TafChannelDB
 from discord import TextChannel
+if TYPE_CHECKING:
+    from amelia.bot import AmeliaBot
 
-from amelia.bot import AmeliaBot
 from amelia.cache import DiscordEntityCache, DiscordEntityManyCache
 
 
@@ -27,7 +28,7 @@ class MetarChannelCache(DiscordEntityManyCache[TextChannel]):
 
 class MetarCache:
 
-    def __init__(self, bot: AmeliaBot):
+    def __init__(self, bot: 'AmeliaBot'):
         super(MetarCache, self).__init__()
         self.bot = bot
         self.config = MetarConfigCache(lambda e: e, self.bot.pg.fetch_metar_configs, MetarDB)
@@ -47,7 +48,7 @@ class MetarCache:
 
 class TafCache:
 
-    def __init__(self, bot: AmeliaBot):
+    def __init__(self, bot: 'AmeliaBot'):
         super().__init__()
         self.bot = bot
         self.config = TafConfigCache(lambda e: e, self.bot.pg.fetch_taf_configs, TafDB)

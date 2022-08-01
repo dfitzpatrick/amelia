@@ -1,14 +1,15 @@
 import textwrap
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import aiohttp
 import discord
 
 from amelia import common
-from amelia.weather.objects import FlightRule, TafDTO
-from amelia.weather.objects import MetarDTO
 
+from amelia.weather.objects import FlightRule
+if TYPE_CHECKING:
+    from amelia.tfl import MetarDTO, TafDTO
 
 def flight_rules(rule: str) -> FlightRule:
     """
@@ -33,7 +34,7 @@ def flight_rules(rule: str) -> FlightRule:
     return formats.get(rule.upper(), FlightRule(":black_circle:", rule))
 
 
-def make_metar_embed(metar_dto: MetarDTO) -> discord.Embed:
+def make_metar_embed(metar_dto: 'MetarDTO') -> discord.Embed:
     icao = metar_dto.icao
     now = datetime.now(timezone.utc)
     elapsed = common.td_format(now - metar_dto.valid)
@@ -62,7 +63,7 @@ def make_metar_embed(metar_dto: MetarDTO) -> discord.Embed:
     embed.timestamp = datetime.now()
     return embed
 
-def make_taf_embed(taf_dto: TafDTO) -> discord.Embed:
+def make_taf_embed(taf_dto: 'TafDTO') -> discord.Embed:
     icao = taf_dto.station_id.upper()
     now = datetime.now(timezone.utc)
     elapsed = common.td_format(now - taf_dto.issue_time)

@@ -14,7 +14,7 @@ extensions = (
     'amelia.weather',
     'amelia.autorole',
     'amelia.cogs.core',
-    'amelia.cogs.facility',
+    'amelia.facility.plates',
 )
 
 
@@ -46,7 +46,6 @@ async def run_bot():
         status=discord.Status.idle,
         name=" the weather. /help for commands"
     )
-
     bot = AmeliaBot(
         pool,
         conn,

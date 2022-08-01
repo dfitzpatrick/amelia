@@ -10,6 +10,8 @@ from ameliapg.models import PgNotify
 from ameliapg.server.models import GuildDB
 from discord.app_commands import Group, Command
 from discord.ext import commands
+from amelia.tfl import TFLService
+
 
 log = logging.getLogger(__name__)
 
@@ -38,6 +40,7 @@ class AmeliaBot(commands.Bot):
 
     def __init__(self, pool, connection, extensions: t.Tuple[str, ...] = (), **kwargs):
         super(AmeliaBot, self).__init__(**kwargs)
+        self.tfl = TFLService()
         self.servers: t.Dict[int, GuildDB] = {}
         self.pg: AmeliaPgService = AmeliaPgService(pool, connection, loop=self.loop)
         self._extensions = extensions

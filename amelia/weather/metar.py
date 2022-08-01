@@ -4,26 +4,26 @@ import discord
 from discord import Interaction
 from discord import app_commands
 from discord.ext import commands
+from typing import TYPE_CHECKING
 
-from amelia.bot import AmeliaBot
-from amelia.tfl import TFLService, StationHasNoDataError
+from amelia.tfl import StationHasNoDataError
 from amelia.weather.cache import MetarCache
 from amelia.weather.config import MetarConfigGroup
 from amelia.weather.services import make_metar_embed, depr, get_digital_atis
-
+if TYPE_CHECKING:
+    from amelia.bot import AmeliaBot
 log = logging.getLogger(__name__)
 
 
 class Metar(commands.Cog):
 
 
-    def __init__(self, bot: AmeliaBot):
+    def __init__(self, bot: 'AmeliaBot'):
         self.bot = bot
-        self.service = TFLService()
         self.cache = MetarCache(bot)
 
     async def _get_metar_embed(self, icao: str, display_name: str, avatar_url: str):
-        metar = await self.service.fetch_metar(icao)
+        metar = await self.bot.tfl.fetch_metar(icao)
         datis = await get_digital_atis(icao)
         embed = make_metar_embed(metar)
         text = f"{display_name} | Not an official source for flight planning"
