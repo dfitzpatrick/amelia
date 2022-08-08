@@ -152,7 +152,7 @@ class TFLService:
             issue_time=parser.parse(r['issue_time']),
             bulletin_time=parser.parse(r['bulletin_time']),
             location=r['location'],
-            forecasts=r['forecasts'],
+            forecasts=[Forecast(**f) for f in r['forecasts']],
             last_polling_succeeded=r['last_polling_succeeded']
         )
 

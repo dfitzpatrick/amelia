@@ -2,6 +2,7 @@ import discord
 from discord import app_commands, Interaction
 from discord.ext import commands
 
+from amelia.tfl import StationHasNoDataError
 from amelia.weather.cache import TafCache
 from amelia.weather.config import TafConfigGroup
 from amelia.weather.services import make_taf_embed, depr
@@ -58,14 +59,18 @@ class Taf(commands.Cog):
 
     @taf_app_cmd.error
     async def taf_app_cmd_error(self, itx: Interaction, error):
+        unknown_error = False
         message = "Could not complete the request. Unknown error."
         if isinstance(error.original, tfl.StationHasNoDataError):
             icao = itx.data['options'][0]['value'].upper()
             message = f"**{icao}** is not currently reporting TAF"
         else:
-            raise error
+            unknown_error = True
+
         embed = discord.Embed(title="TAF Unavailable", description=message)
         await itx.response.send_message(embed=embed, ephemeral=True)
+        if unknown_error:
+            raise error
 
     @taf_txt_cmd.error
     async def taf_txt_cmd_error(self, ctx: commands.Context, error):
