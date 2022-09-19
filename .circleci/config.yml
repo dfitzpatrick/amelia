@@ -15,6 +15,16 @@ jobs:
     steps:
       - checkout
       - run:
+          name: "Setup Virtual Environment"
+          command: |
+            python -m venv amelia-venv
+            . amelia-venv/bin/activate
+            pip install --no-cache-dr -r requirements.txt
+      - run:
+          name: "Run Amelia Tests"
+          command: |
+              pytest ./tests/
+      - run:
           name: "Say hello"
           command: "echo Hello, World!"
 
