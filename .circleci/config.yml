@@ -23,7 +23,7 @@ jobs:
       - run:
           name: "Run Amelia Tests"
           command: |
-              pytest ./tests/
+              python -m pytest ./tests/
       - run:
           name: "Say hello"
           command: "echo Hello, World!"
