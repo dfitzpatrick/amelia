@@ -25,6 +25,7 @@ class ForumQOL(commands.Cog):
         embed.set_thumbnail(url=message.author.avatar.url)
         embed.set_footer(icon_url=avatar, text=name)
         embed.timestamp = message.created_at
+        embed.url = message.jump_url
         await itx.response.send_message(embed=embed, ephemeral=True)
 
     @op_context.error
