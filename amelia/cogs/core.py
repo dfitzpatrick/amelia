@@ -23,6 +23,10 @@ class Core(Cog):
     def __init__(self, bot: AmeliaBot):
         self.bot = bot
 
+    @app_commands.command(name='reproduce')
+    async def reproduce(self, interaction: discord.Interaction, channel: discord.ForumChannel):
+        await interaction.response.send_message(channel.name)
+
     @app_commands.command(name='help', description="See the commands that Amelia has to offer")
     async def help_cmd(self, itx: Interaction):
         title = "Amelia Help Commands"

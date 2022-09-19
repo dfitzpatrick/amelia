@@ -1,0 +1,10 @@
+version: "3.3"
+services:
+  amelia-bot:
+    network_mode: host
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ${LOCAL_AMELIAPG:-/dev/null}:/home/src/ameliapg
+    command: python3.10 -m amelia

@@ -7,6 +7,7 @@ import discord
 
 from amelia.bot import AmeliaBot
 
+from ameliapg.forum_channels.service import ForumChannelService
 log = logging.getLogger(__name__)
 
 
@@ -15,6 +16,7 @@ extensions = (
     'amelia.autorole',
     'amelia.cogs.core',
     'amelia.facility.plates',
+    'amelia.forum_channels',
 )
 
 
@@ -33,6 +35,7 @@ def get_guild_prefix(bot: AmeliaBot, message: discord.Message):
 
 
 async def run_bot():
+    log.info(f"Discord Version: {discord.__version__}")
     dsn = os.environ['DSN']
     token = os.environ['AMELIA_TOKEN']
     conn = await asyncpg.connect(dsn)
@@ -40,7 +43,6 @@ async def run_bot():
     intents = discord.Intents.default()
     intents.message_content = True
     intents.members = True
-
     activity = discord.Activity(
         type=discord.ActivityType.watching,
         status=discord.Status.idle,
@@ -57,8 +59,11 @@ async def run_bot():
     )
     try:
         await bot.start(token)
+    except RuntimeError:
+        pass
     finally:
         await bot.close()
+
 
 loop = asyncio.new_event_loop()
 try:
