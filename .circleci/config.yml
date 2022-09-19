@@ -18,8 +18,16 @@ jobs:
           name: "Setup Virtual Environment"
           command: |
             python -m venv amelia-venv
+      - run: 
+          name: "Install Third Party Dependencies"
+          command: |
             . amelia-venv/bin/activate
             pip install --no-cache-dir -r requirements.txt
+      - run:
+          name: "Install ameliapg dependency"
+          command: |
+            . amelia-venv/bin/activate
+            pip install https://github.com/dfitzpatrick/ameliapg#egg=ameliapg
       - run:
           name: "Run Amelia Tests"
           command: |
@@ -28,7 +36,6 @@ jobs:
       - run:
           name: "Say hello"
           command: "echo Hello, World!"
-
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
