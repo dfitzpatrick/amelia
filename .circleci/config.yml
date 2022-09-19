@@ -27,7 +27,7 @@ jobs:
           name: "Install ameliapg dependency"
           command: |
             . amelia-venv/bin/activate
-            pip install https://github.com/dfitzpatrick/ameliapg#egg=ameliapg
+            pip install https://github.com/dfitzpatrick/ameliapg.git#egg=ameliapg
       - run:
           name: "Run Amelia Tests"
           command: |
