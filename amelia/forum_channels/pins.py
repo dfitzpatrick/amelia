@@ -10,22 +10,15 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+
 class AutoPinsCog(commands.GroupCog, group_name='autopin'):
 
     def __init__(self, bot: AmeliaBot):
         self.bot = bot
 
-    @app_commands.command(name='op')
-    async def op_context(self, itx: discord.Interaction):
-        if not isinstance(itx.channel, discord.Thread):
-            raise TypeError("This command can only be done in a thread / forum post")
-        message = await itx.channel.fetch_message(itx.channel_id)
 
-        description = message.content
-        embed = discord.Embed(title="Originating Post", description=description)
-        await itx.response.send_message(embed=embed, ephemeral=True)
-
-    @app_commands.command(name='add')
+    @app_commands.checks.has_permissions(manage_channels=True)
+    @app_commands.command(name='add', description="Adds auto-pinning capabilities to a forum channel")
     async def add_channel(self, itx: discord.Interaction, channel: discord.ForumChannel):
         if not isinstance(channel, discord.ForumChannel):
             raise TypeError("Channel must be a Forum Channel")
@@ -35,7 +28,8 @@ class AutoPinsCog(commands.GroupCog, group_name='autopin'):
 
         await itx.response.send_message(f"Auto-pins enabled on {channel.name}")
 
-    @app_commands.command(name='remove')
+    @app_commands.checks.has_permissions(manage_channels=True)
+    @app_commands.command(name='remove', description="Removes auto-pinning capabilities to a forum channel")
     async def remove_channel(self, itx: discord.Interaction, channel: discord.ForumChannel):
         if not isinstance(channel, discord.ForumChannel):
             raise TypeError("Channel must be a Forum Channel")
@@ -49,6 +43,14 @@ class AutoPinsCog(commands.GroupCog, group_name='autopin'):
             query = "select count(id) from autopins where parent_id = $1;"
             count = await db.connection.fetchval(query, channel_id)
             return count > 0
+
+    @add_channel.error
+    @remove_channel.error
+    async def on_add_channel_error(self, itx, error: commands.CommandInvokeError):
+        if isinstance(error, app_commands.MissingPermissions):
+            await itx.response.send_message("You do not have permissions to use this command", ephemeral=True)
+        else:
+            raise
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread: discord.Thread):
