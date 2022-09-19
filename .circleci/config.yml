@@ -23,7 +23,8 @@ jobs:
       - run:
           name: "Run Amelia Tests"
           command: |
-              python -m pytest ./tests/
+            . amelia-venv/bin/activate
+            python -m pytest ./tests/
       - run:
           name: "Say hello"
           command: "echo Hello, World!"
