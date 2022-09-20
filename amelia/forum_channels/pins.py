@@ -61,8 +61,8 @@ class AutoPinsCog(commands.GroupCog, group_name='autopin'):
         message = thread.get_partial_message(thread.id)
         try:
             await message.pin(reason="OP")
-        except discord.Forbidden:
-            log.warning(f"Auto-pin failed in {thread.guild.id}/'{thread.guild.name}' Missing Permissions")
+        except discord.Forbidden as e:
+            log.warning(f"Auto-pin failed in {thread.guild.id}/'{thread.guild.name}' Missing Permissions - {e}")
 
         except (discord.HTTPException, discord.NotFound):
             pass
