@@ -61,5 +61,14 @@ class Core(Cog):
             await self.bot.tree.sync(guild=o)
         await ctx.send("Commands synced", delete_after=5)
 
+    @app_commands.command(name='guilds')
+    async def guilds_app_cmd(self, itx: discord.Interaction):
+        if itx.user.id != self.bot.owner_id:
+            await itx.response.send_message("You do not have access to this command",ephemeral=True)
+            return
+        description = '\n'.join(g.name for g in self.bot.guilds)
+        embed = discord.Embed(title="Guiids", description=description)
+        await itx.response.send_message(embed=embed, ephemeral=True)
+
 async def setup(bot):
     await bot.add_cog(Core(bot))
