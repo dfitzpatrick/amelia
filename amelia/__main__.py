@@ -17,6 +17,7 @@ extensions = (
     'amelia.cogs.core',
     'amelia.facility.plates',
     'amelia.forum_channels',
+    'amelia.cogs.eggs',
 )
 
 
