@@ -58,7 +58,7 @@ class EasterEggCog(commands.Cog):
             except (discord.Forbidden, discord.HTTPException):
                 log.debug("could not send easter egg message due to permissions")
             finally:
-                self.hi_timestamp = now + timedelta(hours=1)
+                self.hi_timestamp = now + timedelta(hours=6)
 
 
     @commands.Cog.listener()
