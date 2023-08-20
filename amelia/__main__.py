@@ -44,6 +44,7 @@ async def run_bot():
     intents = discord.Intents.default()
     intents.message_content = True
     intents.members = True
+
     activity = discord.Activity(
         type=discord.ActivityType.watching,
         status=discord.Status.idle,

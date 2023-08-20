@@ -1,10 +1,21 @@
 version: "3.3"
 services:
-  amelia-bot:
-    network_mode: host
-    build: .
+  postgres_db:
     env_file:
       - .env
+    image: postgres:15.4-alpine
+    ports: # Set up ports exposed for other containers to connect to
+      - 5433:5432
     volumes:
-      - ${LOCAL_AMELIAPG:-/dev/null}:/home/src/ameliapg
+      - pgdata:/var/lib/postgres/data
+
+  amelia-bot:
+    env_file:
+      - .env
+    network_mode: host
+    build: .
     command: python3.10 -m amelia
+
+volumes:
+  pgdata:
+    external: true

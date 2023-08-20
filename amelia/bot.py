@@ -11,6 +11,7 @@ from ameliapg.server.models import GuildDB
 from discord.app_commands import Group, Command
 from discord.ext import commands
 from amelia.tfl import TFLService
+import os
 
 
 log = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ class AmeliaBot(commands.Bot):
         super(AmeliaBot, self).__init__(**kwargs)
         self.tfl = TFLService()
         self.servers: t.Dict[int, GuildDB] = {}
+        AmeliaPgService.migrate(os.environ['DSN'])
         self.pg: AmeliaPgService = AmeliaPgService(pool, connection, loop=self.loop)
         self._extensions = extensions
         self._first_run = True

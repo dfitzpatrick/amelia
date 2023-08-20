@@ -13,13 +13,16 @@ if t.TYPE_CHECKING:
 
 import sentry_sdk
 sentry_sdk.init(
-    os.environ['SENTRY_INGEST'],
+    dsn=os.environ['SENTRY_DSN'],
 
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
     # We recommend adjusting this value in production.
-    traces_sample_rate=1.0
+    traces_sample_rate=1.0,
+    environment=os.environ.get('SENTRY_ENVIRONMENT', 'unknown')
 )
+
+#t
 
 BASE_DIR = os.path.normpath(os.path.dirname(os.path.realpath(__file__)))
 

@@ -1,0 +1,14 @@
+ALTER TABLE IF EXISTS Server
+    RENAME COLUMN joined TO created_at;
+
+ALTER TABLE IF EXISTS Server
+    ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN auto_delete_commands BOOLEAN NOT NULL DEFAULT TRUE;
+
+
+CREATE TRIGGER set_timestamp
+        BEFORE UPDATE ON Server
+        FOR EACH ROW
+            EXECUTE PROCEDURE set_updated_at();
+
+
