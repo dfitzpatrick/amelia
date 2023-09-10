@@ -1,4 +1,4 @@
-from amelia.autorole.autorole import AutoRole
+from amelia.features.autorole.autorole import AutoRole
 
 
 async def setup(bot):

@@ -11,13 +11,22 @@ from amelia.bot import AmeliaBot
 
 log = logging.getLogger(__name__)
 
+custom_extensions = (
+    'amelia.concepts.guild',
+    'amelia.features.forum_channels',
+    'amelia.features.facility',
+    'amelia.features.eggs',
+    'amelia.features.autorole',
+)
+
 weather_cmds = [
-    '/metar',
+    '/observation',
     '/taf',
 ]
 other_cmds = [
-    '/sunset',
+    '/plates',
 ]
+
 class Core(Cog):
 
     def __init__(self, bot: AmeliaBot):
@@ -35,7 +44,7 @@ class Core(Cog):
         embed = discord.Embed(title=title, description=description)
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         embed.add_field(name="Weather Related", value='\n'.join(weather_cmds))
-        embed.add_field(name="Other", value='\n'.join(other_cmds))
+        embed.add_field(name="Facility", value='\n'.join(other_cmds))
         embed.add_field(name="Configuration", value='/config', inline=False)
         await itx.response.send_message(embed=embed, ephemeral=True)
 
@@ -61,14 +70,28 @@ class Core(Cog):
             await self.bot.tree.sync(guild=o)
         await ctx.send("Commands synced", delete_after=5)
 
+    async def setup_extensions(self, callable):
+        for ext in custom_extensions:
+            await callable(ext)
+    @commands.command(name='r')
+    @commands.is_owner()
+    async def reload_extensions_cmd(self, ctx: commands.Context):
+        await self.setup_extensions(self.bot.reload_extension)
+        await ctx.send("Reload done")
+
     @app_commands.command(name='guilds')
     async def guilds_app_cmd(self, itx: discord.Interaction):
-        if itx.user.id != self.bot.owner_id:
+        if not (await self.bot.is_owner(itx.user)):
             await itx.response.send_message("You do not have access to this command",ephemeral=True)
             return
         description = '\n'.join(g.name for g in self.bot.guilds)
         embed = discord.Embed(title="Guiids", description=description)
         await itx.response.send_message(embed=embed, ephemeral=True)
 
-async def setup(bot):
-    await bot.add_cog(Core(bot))
+async def setup(bot: AmeliaBot):
+    log.debug("in setup")
+    core = Core(bot)
+    await bot.add_cog(core)
+    log.debug("calling extension load with load_extension")
+    await core.setup_extensions(bot.load_extension)
+

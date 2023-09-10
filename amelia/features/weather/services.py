@@ -7,7 +7,7 @@ import discord
 
 from amelia import common
 
-from amelia.weather.objects import FlightRule
+from amelia.features.weather.objects import FlightRule
 if TYPE_CHECKING:
     from amelia.tfl import MetarDTO, TafDTO
 

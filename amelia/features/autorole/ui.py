@@ -1,14 +1,11 @@
-import textwrap
 from typing import TYPE_CHECKING
 
 import discord
 from discord import ui, Interaction
 
-
-from amelia.bot import AmeliaBot
 import logging
 if TYPE_CHECKING:
-    from amelia.autorole.config import AutoRoleConfig
+    from amelia.features.autorole.config import AutoRoleConfig
 
 log = logging.getLogger(__name__)
 

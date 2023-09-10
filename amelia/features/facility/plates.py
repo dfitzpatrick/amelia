@@ -1,20 +1,15 @@
 import re
-from io import BytesIO
 from typing import Dict, Any, Optional, List
 
-import aiohttp
 import discord
 from discord import app_commands, Interaction
-from discord.app_commands import Choice
 from discord.ext import commands
-from pdf2image import convert_from_bytes
-
 
 from amelia.auto_choices import DependentFuzzyChoicesCache, AutoCompleteItem, FuzzyChoicesCache
 from amelia.bot import AmeliaBot
 import logging
 
-from amelia.facility.services import plate_to_image_bytes, all_plates_embed
+from amelia.features.facility.services import plate_to_image_bytes, all_plates_embed
 from amelia.pagination import LongDescriptionPaginator
 from amelia.tfl import TFLService, FAAPlate
 

@@ -10,11 +10,17 @@ services:
       - pgdata:/var/lib/postgres/data
 
   amelia-bot:
+    container_name: app
     env_file:
       - .env
     network_mode: host
     build: .
+    volumes:
+      - .:/app
     command: python3.10 -m amelia
+    depends_on:
+      - postgres_db
+
 
 volumes:
   pgdata:

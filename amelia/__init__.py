@@ -46,6 +46,7 @@ logging.basicConfig(
 logging.getLogger('asyncio').setLevel(logging.ERROR)
 logging.getLogger('discord').setLevel(logging.ERROR)
 logging.getLogger('websockets').setLevel(logging.ERROR)
+logging.getLogger('asyncpg').setLevel(logging.DEBUG)
 log = logging.getLogger(__name__)
 
 

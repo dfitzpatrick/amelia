@@ -3,9 +3,9 @@ from discord import app_commands, Interaction
 from discord.ext import commands
 
 from amelia.tfl import StationHasNoDataError
-from amelia.weather.cache import TafCache
-from amelia.weather.config import TafConfigGroup
-from amelia.weather.services import make_taf_embed, depr
+from amelia.features.weather.cache import TafCache
+from amelia.features.weather.config import TafConfigGroup
+from amelia.features.weather.services import make_taf_embed, depr
 from amelia import tfl
 
 class Taf(commands.Cog):

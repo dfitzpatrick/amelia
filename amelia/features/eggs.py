@@ -29,7 +29,7 @@ class EasterEggCog(commands.Cog):
     async def on_message_r_flying_easter_egg(self, message: discord.Message):
         predicates = [
             message.guild.id == 379051048129789953,     # r/flying
-            message.channel.id == 383128744115830785,   # #metar-chat
+            message.channel.id == 383128744115830785,   # #observation-chat
             message.author.id == 491769129318088714     # NTSB_BOT
         ]
         if not all(predicates):

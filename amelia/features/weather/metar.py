@@ -7,9 +7,9 @@ from discord.ext import commands
 from typing import TYPE_CHECKING
 
 from amelia.tfl import StationHasNoDataError
-from amelia.weather.cache import MetarCache
-from amelia.weather.config import MetarConfigGroup
-from amelia.weather.services import make_metar_embed, depr, get_digital_atis
+from amelia.features.weather.cache import MetarCache
+from amelia.features.weather.config import MetarConfigGroup
+from amelia.features.weather.services import make_metar_embed, depr, get_digital_atis
 if TYPE_CHECKING:
     from amelia.bot import AmeliaBot
 log = logging.getLogger(__name__)
@@ -42,9 +42,9 @@ class Metar(commands.Cog):
         msg = await channel.send(**kwargs)
         return msg
 
-    @commands.command(name='metar')
+    @commands.command(name='observation')
     async def metar_txt_cmd(self, ctx: commands.Context, icao: str):
-        _depr = depr('/metar')
+        _depr = depr('/observation')
         embed = await self._get_metar_embed(icao, ctx.author.display_name, ctx.author.display_avatar.url)
         # easter egg
         if ctx.author.id == 675262431190319104:
@@ -54,12 +54,12 @@ class Metar(commands.Cog):
         else:
             msg = await self.send_to_first_allowed_channel(ctx.guild.id, embed=embed)
             try:
-                await ctx.author.send(f"I have moved your metar report to {msg.channel.mention}")
+                await ctx.author.send(f"I have moved your observation report to {msg.channel.mention}")
             except (discord.Forbidden, discord.HTTPException):
                 pass
 
 
-    @app_commands.command(name='metar', description="Current METAR Observation for an airport")
+    @app_commands.command(name='observation', description="Current METAR Observation for an airport")
     @app_commands.describe(icao="The ICAO code of the airport that is reporting METAR observations")
     async def metar_app_cmd(self, itx: Interaction, icao: str):
         embed = await self._get_metar_embed(icao, itx.user.display_name, itx.user.display_avatar.url)

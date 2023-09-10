@@ -28,6 +28,11 @@ class MetarChannelCache(DiscordEntityManyCache[TextChannel]):
 
 class MetarCache:
 
+    async def get_metar_configs(self):
+        async with self.bot.db as session:
+            results = await session.weather.metar_configs()
+            return results
+
     def __init__(self, bot: 'AmeliaBot'):
         super(MetarCache, self).__init__()
         self.bot = bot

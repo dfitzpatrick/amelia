@@ -7,7 +7,7 @@ import asyncio
 
 TFL_URL = 'http://theflying.life'
 APP_COMMANDS_GUILDS = (
-   discord.Object(id=734183623707721874),
+   discord.Object(id=1020393929746685973),
 )
 
 class FlightRule(typing.NamedTuple):

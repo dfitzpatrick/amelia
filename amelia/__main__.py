@@ -2,45 +2,25 @@ import asyncio
 import logging
 import os
 
-import asyncpg
 import discord
 
 from amelia.bot import AmeliaBot
+from amelia.instances import db
+from amelia.uow import UOW
 
-from ameliapg.forum_channels.service import ForumChannelService
 log = logging.getLogger(__name__)
-
-
-extensions = (
-    'amelia.weather',
-    'amelia.autorole',
-    'amelia.cogs.core',
-    'amelia.facility.plates',
-    'amelia.forum_channels',
-    'amelia.cogs.eggs',
-)
-
+_dsn = os.environ['DSN']
+_token = os.environ['AMELIA_TOKEN']
 
 def bot_task_callback(future: asyncio.Future):
     if future.exception():
         raise future.exception()
 
-
-def get_guild_prefix(bot: AmeliaBot, message: discord.Message):
-    default = '!'
-    server = bot.servers.get(message.guild.id)
-    if server is None:
-        return default
-
-    return server.delimiter
-
-
-async def run_bot():
+async def bootstrap():
     log.info(f"Discord Version: {discord.__version__}")
-    dsn = os.environ['DSN']
-    token = os.environ['AMELIA_TOKEN']
-    conn = await asyncpg.connect(dsn)
-    pool = await asyncpg.create_pool(dsn)
+    #db.uow_cls = UOW
+    db.migrate()
+    await db.start_listening()
     intents = discord.Intents.default()
     intents.message_content = True
     intents.members = True
@@ -51,26 +31,24 @@ async def run_bot():
         name=" the weather. /help for commands"
     )
     bot = AmeliaBot(
-        pool,
-        conn,
+        db_service=db,
         intents=intents,
         command_prefix='!',
-        extensions=extensions,
         slash_commands=True,
         activity=activity
     )
     try:
-        await bot.start(token)
+        await bot.start(_token)
     except RuntimeError:
         pass
     finally:
         await bot.close()
 
-
 loop = asyncio.new_event_loop()
+
 try:
     future = asyncio.ensure_future(
-        run_bot(),
+        bootstrap(),
         loop=loop
     )
     future.add_done_callback(bot_task_callback)
@@ -79,8 +57,5 @@ except KeyboardInterrupt:
     pass
 finally:
     loop.close()
-
-
-
 
 
