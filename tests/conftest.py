@@ -8,8 +8,8 @@ import asyncio
 
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from amelia.data import Pg, BaseUOW
-from amelia.concepts.guild.data import GuildDataContext, GuildSchema
+from src.data import Pg, BaseUOW
+from src.concepts.guild.data import GuildDataContext, GuildSchema
 
 
 

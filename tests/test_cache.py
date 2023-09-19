@@ -3,7 +3,7 @@ from ameliapg.metar.models import MetarChannelDB
 from ameliapg.models import PgNotify
 from pydantic import BaseModel
 
-from amelia.cache import DiscordEntityManyCache, DiscordEntityCache
+from src.cache import DiscordEntityManyCache, DiscordEntityCache
 
 
 class ConvertedObject(BaseModel):

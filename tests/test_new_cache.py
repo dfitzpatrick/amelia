@@ -1,6 +1,6 @@
 import pytest
 
-from amelia.cache import LRUCache, FunctionOperationsCache
+from src.cache import LRUCache, FunctionOperationsCache
 
 @pytest.mark.asyncio()
 async def test_function_invalidate_cache():
