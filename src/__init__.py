@@ -6,7 +6,6 @@ import sys
 import typing as t
 from logging import StreamHandler, FileHandler
 
-from src import common
 
 if t.TYPE_CHECKING:
     pass

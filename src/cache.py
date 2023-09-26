@@ -1,20 +1,11 @@
 from __future__ import annotations
-
 import collections
 import logging
-from typing import TypeVar, Generic, Dict, Callable, Optional, Protocol, Any, OrderedDict, \
+from typing import TypeVar, Generic, Dict, Optional, Protocol, Any, OrderedDict, \
     TypeAlias
 from functools import wraps
 import gc
 log = logging.getLogger(__name__)
-
-
-Container_T = TypeVar("Container_T")
-Entity_T = TypeVar("Entity_T")
-Item_T = TypeVar("Item_T")
-
-F = TypeVar('F', bound=Callable[..., Any])
-
 
 
 class Indexable(Protocol):
@@ -28,7 +19,7 @@ class Attritable(Protocol):
         ...
     
     
-T = TypeVar("T", bound=Indexable)
+T = TypeVar("T", bound=Indexable | Attritable)
 OneOrManyT: TypeAlias = T | list[T]
 
 

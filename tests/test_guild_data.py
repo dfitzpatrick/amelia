@@ -33,7 +33,7 @@ async def test_member_count_increment(ctx: GuildDataContext):
     assert o.id is not None
     count = o.member_count
     o = await ctx.increment_member_count(o.guild_id)
-    assert o.member_count == count + 1
+    assert o is not None and o.member_count == count + 1
 
 @pytest.mark.asyncio
 async def test_member_count_increment_returns_none_if_no_guild(ctx: GuildDataContext):
@@ -46,6 +46,8 @@ async def test_guild_context_fetch_guild(ctx: GuildDataContext):
     o = await ctx.upsert(o)
     new = await ctx.fetch_guild(o.guild_id)
     assert new is not None
-    missing_id = o.id + 1
+    assert o is not None
+    id_num = o.id or -1
+    missing_id = id_num + 1
     not_found = await ctx.fetch_guild(missing_id)
     assert not_found is None

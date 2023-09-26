@@ -20,13 +20,16 @@ class AutoPinsCog(commands.GroupCog, group_name='autopin'):
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.command(name='add', description="Adds auto-pinning capabilities to a forum channel")
     async def add_channel(self, itx: discord.Interaction, channel: discord.ForumChannel):
+        if itx.guild_id is None:
+            return
         if not isinstance(channel, discord.ForumChannel):
             raise TypeError("Channel must be a Forum Channel")
 
-        async with self.bot.pg as db:
-            await db.forum_channels.create_auto_pin(itx.guild_id, channel.id)
+        async with self.bot.db as session:
+            await session.forum_channels.create_auto_pin(itx.guild_id, channel.id)
+            await session.commit()
 
-        await itx.response.send_message(f"Auto-pins enabled on {channel.name}")
+        await itx.response.send_message(f"Auto-pins enabled on {channel.name}", ephemeral=True)
 
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.command(name='remove', description="Removes auto-pinning capabilities to a forum channel")
@@ -34,20 +37,20 @@ class AutoPinsCog(commands.GroupCog, group_name='autopin'):
         if not isinstance(channel, discord.ForumChannel):
             raise TypeError("Channel must be a Forum Channel")
 
-        async with self.bot.pg as db:
-            await db.forum_channels.delete_auto_pin(channel.id)
-        await itx.response.send_message(f"Auto-pins disabled on {channel.name}")
+        async with self.bot.db as session:
+            await session.forum_channels.delete_auto_pin(channel.id)
+        await itx.response.send_message(f"Auto-pins disabled on {channel.name}", ephemeral=True)
 
     async def auto_pin_enabled(self, channel_id: int):
-        async with self.bot.pg as db:
-            query = "select count(id) from autopins where parent_id = $1;"
-            count = await db.connection.fetchval(query, channel_id)
-            return count > 0
+        async with self.bot.db as session:
+            enabled = await session.forum_channels.has_auto_pin(channel_id)
+            return enabled
 
     @add_channel.error
     @remove_channel.error
-    async def on_add_channel_error(self, itx, error: commands.CommandInvokeError):
-        if isinstance(error, app_commands.MissingPermissions):
+    async def on_add_channel_error(self, itx: discord.Interaction, error: app_commands.AppCommandError):
+        unwrapped_error = error.original if isinstance(error, app_commands.errors.CommandInvokeError) else error
+        if isinstance(unwrapped_error, app_commands.MissingPermissions):
             await itx.response.send_message("You do not have permissions to use this command", ephemeral=True)
         else:
             raise

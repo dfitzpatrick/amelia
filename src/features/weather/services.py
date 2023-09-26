@@ -6,7 +6,8 @@ import aiohttp
 import discord
 
 from src import common
-
+from src.features.weather.data import AllowedChannel
+from src.instances import db
 from src.features.weather.objects import FlightRule
 if TYPE_CHECKING:
     from src.tfl import MetarDTO, TafDTO
@@ -122,3 +123,24 @@ async def get_digital_atis(icao: str) -> Optional[str]:
                 return
             return data['datis']
 
+
+async def get_allowed_channels(guild: discord.Guild) -> list[discord.TextChannel]:
+        container = []
+        async with db as session:
+            schemas = await session.weather.fetch_metar_channels(guild.id)
+            for sch in schemas:
+                o = discord.utils.get(guild.text_channels, id=sch.channel_id)
+                if o is not None:
+                    container.append(o)
+        return container
+
+def convert_allowed_channels_to_discord(
+        guild: discord.Guild, 
+        channels: list[AllowedChannel]
+    ) -> list[discord.TextChannel]:
+    container = []
+    for schema in channels:
+        o = discord.utils.get(guild.text_channels, id=schema.channel_id)
+        if o is not None:
+            container.append(o)
+    return container

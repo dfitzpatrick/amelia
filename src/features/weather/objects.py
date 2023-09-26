@@ -6,7 +6,7 @@ class FlightRule(NamedTuple):
     name: str
 
     @classmethod
-    def create(self, rule: str):
+    def create(cls, rule: str):
         """
         Returns a Named Tuple based on the flight rules. Right now this
         tuple just contains an emoji and the name, but could be expanded later.

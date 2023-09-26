@@ -17,6 +17,9 @@ async def sunset_cmd(itx: Interaction, icao: str):
     airport = await tfl.fetch_airport(icao)
     lat, lon = airport.latitude, airport.longitude
     s = await service.fetch_sun_rise_set(lat, lon)
+    if s is None:
+        await itx.response.send_message("Unable to get sunrise and sunset information", ephemeral=True)
+        return
 
     sunrise = parse(s['sunrise'])
     sunset = parse(s['sunset'])
@@ -26,9 +29,9 @@ async def sunset_cmd(itx: Interaction, icao: str):
     description = f"You can log night time starting at {cte.strftime(fmt)}"
 
     embed = discord.Embed(title=f"Sunset Information for {icao}", description=description)
-    embed.add_field(name=':sunrise_over_mountains: Civil Twilight Begins', value=cte.strftime(fmt))
+    embed.add_field(name=':sunrise_over_mountains: Civil Twilight Begins', value=ctb.strftime(fmt))
     embed.add_field(name=':sunrise: Sunrise', value=sunrise.strftime(fmt))
-    embed.add_field(name=':city_sunset: Sunset', value=sunset.strftime(fmt)),
+    embed.add_field(name=':city_sunset: Sunset', value=sunset.strftime(fmt))
     embed.add_field(name=':crescent_moon: Civil Twilight Ends', value=cte.strftime(fmt))
     embed.timestamp = datetime.now()
     await itx.response.send_message(embed=embed, ephemeral=True)

@@ -2,17 +2,17 @@ import discord
 from discord import app_commands, Interaction
 from discord.ext import commands
 
-from src.tfl import StationHasNoDataError
-from src.features.weather.cache import TafCache
 from src.features.weather.config import TafConfigGroup
-from src.features.weather.services import make_taf_embed, depr
+from src.features.weather.services import convert_allowed_channels_to_discord, make_taf_embed
 from src import tfl
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.bot import AmeliaBot
 
 class Taf(commands.Cog):
 
-    def __init__(self, bot: 'AmeliaBot'):
+    def __init__(self, bot: AmeliaBot):
         self.bot = bot
-        self.cache = TafCache(bot)
 
     async def _get_taf_embed(self, icao: str, display_name: str, avatar_url: str):
         taf = await self.bot.tfl.fetch_taf(icao)
@@ -21,68 +21,40 @@ class Taf(commands.Cog):
         embed.set_footer(text=text, icon_url=avatar_url)
         return embed
 
-    def is_taf_channel(self, channel: discord.TextChannel):
-        allowed_channels = self.cache.channels.item.get(channel.guild.id, [])
-        return len(allowed_channels) == 0 or channel in allowed_channels
-
-    async def send_to_first_allowed_channel(self, guild_id: int, **kwargs) -> discord.Message:
-        channel = self.cache.channels.item[guild_id][0]
-        msg = await channel.send(**kwargs)
-        return msg
-
-    @commands.command(name='taf')
-    async def taf_txt_cmd(self, ctx: commands.Context, icao: str):
-        _depr = depr('/taf')
-        embed = await self._get_taf_embed(icao, ctx.author.display_name, ctx.author.display_avatar.url)
-        if ctx.author.id == 675262431190319104:
-            embed.set_thumbnail(url='http://clipart-library.com/image_gallery/n1592036.jpg')
-        if self.is_taf_channel(ctx.channel):
-            await ctx.reply(content=_depr, embed=embed)
-        else:
-            msg = await self.send_to_first_allowed_channel(ctx.guild.id, embed=embed)
-            try:
-                await ctx.author.send(f"I have moved your TAF report to {msg.channel.mention}")
-            except (discord.Forbidden, discord.HTTPException):
-                pass
-
     @app_commands.command(name='taf', description="Current TAF Forecast for an airport")
     @app_commands.describe(icao="The ICAO code of the airport that is reporting Terminal Area Forecasts")
     async def taf_app_cmd(self, itx: Interaction, icao: str):
+        if itx.guild is None or itx.channel is None or not isinstance(itx.channel, discord.TextChannel):
+            return
+        async with self.bot.db as session:
+            config = await session.weather.fetch_taf_configuration(itx.guild.id)
+            restricted = config and config.restrict_channel
+            allowed_channels = await session.weather.fetch_taf_channels(itx.guild.id)
+            allowed_channels = convert_allowed_channels_to_discord(itx.guild, allowed_channels) 
         embed = await self._get_taf_embed(icao, itx.user.display_name, itx.user.display_avatar.url)
         message = ""
         ephemeral = False
-        if not self.is_taf_channel(itx.channel):  # duck typing is ok here
+        if restricted and itx.channel not in allowed_channels:
             ephemeral = True
-            m = await self.send_to_first_allowed_channel(itx.guild_id, embed=embed)
-            message = f"I am auto moving this to {m.channel.mention} so others may see as well."
+            first_allowed_channel = allowed_channels[0]
+            m = await first_allowed_channel.send(embed=embed)
+            if isinstance(m.channel, discord.TextChannel):
+                message = f"I am auto moving this to {m.channel.mention} so others may see as well."
         await itx.response.send_message(content=message, embed=embed, ephemeral=ephemeral)
 
     @taf_app_cmd.error
-    async def taf_app_cmd_error(self, itx: Interaction, error):
-        unknown_error = False
+    async def taf_app_cmd_error(self, itx: Interaction, error: app_commands.AppCommandError):
+        unwrapped_error = error.original if isinstance(error, app_commands.errors.CommandInvokeError) else error
         message = "Could not complete the request. Unknown error."
-        if isinstance(error.original, tfl.StationHasNoDataError):
-            icao = itx.data['options'][0]['value'].upper()
+        if isinstance(unwrapped_error, tfl.StationHasNoDataError):
+            icao = itx.data['options'][0]['value'].upper() #type: ignore
             message = f"**{icao}** is not currently reporting TAF"
         else:
-            unknown_error = True
-
+            raise error
         embed = discord.Embed(title="TAF Unavailable", description=message)
         await itx.response.send_message(embed=embed, ephemeral=True)
-        if unknown_error:
-            raise error
-
-    @taf_txt_cmd.error
-    async def taf_txt_cmd_error(self, ctx: commands.Context, error):
-        message = "Could not complete the request. Unknown error."
-        if isinstance(error.original, StationHasNoDataError):
-            icao = ctx.args[2].upper()
-            message = f"**{icao}** is not currently reporting TAF"
-        else:
-            raise error
-        embed = discord.Embed(title="TAF Unavailable", description=message)
-        await ctx.send(embed=embed)
+       
 
 
     async def cog_load(self) -> None:
-        self.bot.config_group.add_command(TafConfigGroup(self.bot, self.cache))
+        self.bot.config_group.add_command(TafConfigGroup(self.bot))

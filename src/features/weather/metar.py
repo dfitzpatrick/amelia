@@ -1,15 +1,16 @@
 import logging
-
-import discord
-from discord import Interaction
-from discord import app_commands
-from discord.ext import commands
 from typing import TYPE_CHECKING
 
-from src.tfl import StationHasNoDataError
-from src.features.weather.cache import MetarCache
+import discord
+from discord import Interaction, app_commands
+from discord.ext import commands
+
 from src.features.weather.config import MetarConfigGroup
-from src.features.weather.services import make_metar_embed, depr, get_digital_atis
+from src.features.weather.services import get_digital_atis, make_metar_embed
+from src.tfl import StationHasNoDataError
+
+from .services import convert_allowed_channels_to_discord
+
 if TYPE_CHECKING:
     from src.bot import AmeliaBot
 log = logging.getLogger(__name__)
@@ -20,7 +21,6 @@ class Metar(commands.Cog):
 
     def __init__(self, bot: 'AmeliaBot'):
         self.bot = bot
-        self.cache = MetarCache(bot)
 
     async def _get_metar_embed(self, icao: str, display_name: str, avatar_url: str):
         metar = await self.bot.tfl.fetch_metar(icao)
@@ -33,50 +33,38 @@ class Metar(commands.Cog):
             embed.add_field(name=name, value=datis, inline=False)
         return embed
 
-    def is_metar_channel(self, channel: discord.TextChannel):
-        allowed_channels = self.cache.channels.item.get(channel.guild.id, [])
-        return len(allowed_channels) == 0 or channel in allowed_channels
 
-    async def send_to_first_allowed_channel(self, guild_id: int, **kwargs) -> discord.Message:
-        channel = self.cache.channels.item[guild_id][0]
-        msg = await channel.send(**kwargs)
-        return msg
-
-    @commands.command(name='observation')
-    async def metar_txt_cmd(self, ctx: commands.Context, icao: str):
-        _depr = depr('/observation')
-        embed = await self._get_metar_embed(icao, ctx.author.display_name, ctx.author.display_avatar.url)
-        # easter egg
-        if ctx.author.id == 675262431190319104:
-            embed.set_thumbnail(url='http://clipart-library.com/image_gallery/n1592036.jpg')
-        if self.is_metar_channel(ctx.channel):
-            await ctx.reply(content=_depr, embed=embed)
-        else:
-            msg = await self.send_to_first_allowed_channel(ctx.guild.id, embed=embed)
-            try:
-                await ctx.author.send(f"I have moved your observation report to {msg.channel.mention}")
-            except (discord.Forbidden, discord.HTTPException):
-                pass
+    
 
 
-    @app_commands.command(name='observation', description="Current METAR Observation for an airport")
+    @app_commands.command(name='metar', description="Current METAR Observation for an airport")
     @app_commands.describe(icao="The ICAO code of the airport that is reporting METAR observations")
     async def metar_app_cmd(self, itx: Interaction, icao: str):
+        if itx.guild is None or itx.channel is None or not isinstance(itx.channel, discord.TextChannel):
+            return
+        async with self.bot.db as session:
+            config = await session.weather.fetch_metar_configuration(itx.guild.id)
+            restricted = config and config.restrict_channel
+            allowed_channels = await session.weather.fetch_metar_channels(itx.guild.id)
+            allowed_channels = convert_allowed_channels_to_discord(itx.guild, allowed_channels) 
         embed = await self._get_metar_embed(icao, itx.user.display_name, itx.user.display_avatar.url)
         message = ""
         ephemeral = False
-        if not self.is_metar_channel(itx.channel):
+        if restricted and itx.channel not in allowed_channels:
             ephemeral = True
-            m = await self.send_to_first_allowed_channel(itx.guild_id, embed=embed)
-            message = f"I am auto moving this to {m.channel.mention} so others may see as well."
+            first_allowed_channel = allowed_channels[0]
+            m = await first_allowed_channel.send(embed=embed)
+            if isinstance(m.channel, discord.TextChannel):
+                message = f"I am auto moving this to {m.channel.mention} so others may see as well."
         await itx.response.send_message(content=message, embed=embed, ephemeral=ephemeral)
 
 
     @metar_app_cmd.error
-    async def metar_app_cmd_error(self, itx: Interaction, error):
+    async def metar_app_cmd_error(self, itx: Interaction, error: app_commands.AppCommandError):
+        unwrapped_error = error.original if isinstance(error, app_commands.errors.CommandInvokeError) else error
         message = "Could not complete the request. Unknown error."
-        if isinstance(error.original, StationHasNoDataError):
-            icao = itx.data['options'][0]['value'].upper()
+        if isinstance(unwrapped_error, StationHasNoDataError):
+            icao = itx.data['options'][0]['value'].upper() #type: ignore
             message = f"**{icao}** is not currently reporting METAR observations"
         else:
             raise error
@@ -84,19 +72,8 @@ class Metar(commands.Cog):
         await itx.response.send_message(embed=embed, ephemeral=True)
 
 
-    @metar_txt_cmd.error
-    async def metar_txt_cmd_error(self, ctx: commands.Context, error):
-        message = "Could not complete the request. Unknown error."
-        if isinstance(error.original, StationHasNoDataError):
-            icao = ctx.args[2].upper()
-            message = f"**{icao}** is not currently reporting METAR observations"
-        else:
-            raise error
-        embed = discord.Embed(title="Metar Unavailable", description=message)
-        await ctx.send(embed=embed)
-
     async def cog_load(self) -> None:
-        self.bot.config_group.add_command(MetarConfigGroup(self.bot, self.cache))
+        self.bot.config_group.add_command(MetarConfigGroup(self.bot))
 
 
 

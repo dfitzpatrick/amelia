@@ -37,9 +37,17 @@ class PlatesCog(commands.Cog):
             if o['name'] == name:
                 return o
 
-    async def _plate_name_autocomplete(self, itx: Interaction, current: str):
-        icao_arg = self.get_command_argument(itx.data['options'], name='icao')
-        icao_value = (icao_arg and icao_arg.get('value')) or ''
+    async def _plate_name_autocomplete(self, itx: Interaction, current: str) -> list[app_commands.Choice]:
+        options = itx.data and itx.data.get('options')
+        if options is None:
+            log.error("Could not retrieve interaction options for FAA Plate autocomplete")
+            return []
+        icao_arg = self.get_command_argument(options, name='icao')
+        if icao_arg is None or not isinstance(icao_arg, dict):
+            log.error("Could not retrieve current icao text for FAA Plate autocomplete")
+            return []
+        icao_value = icao_arg.get('value')
+        icao_value = str(icao_value) if icao_value is not None else ''
         choices = await self.plate_name_cache.retrieve(itx.user.id, icao_value, current)
         log.debug(choices)
         return choices or []
@@ -73,11 +81,7 @@ class PlatesCog(commands.Cog):
                 return
             embed = all_plates_embed(icao, plates)
             if len(embed.description) > 4000:
-                content = "The result is too large to display in one embed. Please click the Start Button to allow pagination."
-                await itx.response.send_message(
-                    content=content,
-                    view=await LongDescriptionPaginator(itx.client, itx.user, embed.title, embed.description, 2000).run()
-                )
+                return itx.followup.send("The result is too large to display at this time.")
             else:
                 await itx.response.send_message(embed=embed)
             return
@@ -90,11 +94,11 @@ class PlatesCog(commands.Cog):
         await itx.followup.send(f"Full Plate: {plate.plate_url}", file=discord_file)
 
     @plate_cmd.error
-    async def plate_cmd_error(self, itx: Interaction, error: commands.CommandInvokeError):
-        original_error = error.original
+    async def plate_cmd_error(self, itx: Interaction, error: app_commands.AppCommandError):
+        original_error = error.original if isinstance(error, app_commands.errors.CommandInvokeError) else error
         if isinstance(original_error, IndexError):
             embed = discord.Embed(title="Plate not Found", description="Could not find that plate. This function only works with U.S. based plates")
-            await itx.response.send(embed=embed, ephemeral=True)
+            await itx.response.send_message(embed=embed, ephemeral=True)
         else:
             await itx.response.send_message("Unable to retrieve plate.", ephemeral=True)
             raise error

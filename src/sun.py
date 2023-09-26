@@ -1,4 +1,4 @@
-from numbers import Number
+from decimal import Decimal
 
 import aiohttp
 import typing
@@ -52,7 +52,7 @@ class SunService:
             except aiohttp.ClientResponseError as e:
                 log.error(e)
 
-    async def fetch_sun_rise_set(self, lat: Number, long: Number, valid_date: datetime = datetime.now(timezone.utc)):
+    async def fetch_sun_rise_set(self, lat: Decimal, long: Decimal, valid_date: datetime = datetime.now(timezone.utc)):
         date_str = valid_date.strftime("%Y-%m-%d")
         target = f'?lat={lat}&lng={long}&date={date_str}&formatted=0'
         data = await self._sunriseset_fetch(target)
