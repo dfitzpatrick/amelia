@@ -2,13 +2,10 @@ from __future__ import annotations
 
 import logging
 import os
+import pathlib
 import sys
-import typing as t
 from logging import StreamHandler, FileHandler
 
-
-if t.TYPE_CHECKING:
-    pass
 
 import sentry_sdk
 from dotenv import load_dotenv
@@ -21,14 +18,16 @@ sentry_sdk.init(
     # We recommend adjusting this value in production.
     traces_sample_rate=1.0,
     environment=os.environ.get('SENTRY_ENVIRONMENT', 'unknown')
-)
+) # type: ignore
 
 #t
 
 BASE_DIR = os.path.normpath(os.path.dirname(os.path.realpath(__file__)))
+LOG_PATH = pathlib.Path(__file__).parents[1] / 'logs'
+LOG_PATH.mkdir(exist_ok=True)
 
 handler_console = StreamHandler(stream=sys.stdout)
-handler_filestream = FileHandler(filename=f"{BASE_DIR}/bot.log", encoding='utf-8')
+handler_filestream = FileHandler(filename=LOG_PATH / 'bot.log', encoding='utf-8')
 handler_filestream.setLevel(logging.INFO)
 handler_console.setLevel(logging.DEBUG)
 
