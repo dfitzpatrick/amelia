@@ -90,27 +90,25 @@ class WeatherDataContext:
          q = f"delete from {table} where channel_id = $1;"
          await self.session.execute(q, channel_id)
 
-    @config_cache.function(class_level=True)
     async def fetch_metar_configuration(self, guild_id: int) -> Optional[WeatherConfigSchema]:
             return await self._fetch_config_table("metarconfig", guild_id)
     
-    @config_cache.function(class_level=True)
+
     async def fetch_taf_configuration(self, guild_id: int) -> Optional[WeatherConfigSchema]:
             return await self._fetch_config_table("tafconfig", guild_id)
 
-    @config_cache.function(class_level=True)
     async def fetch_station_configuration(self, guild_id: int) -> Optional[WeatherConfigSchema]:
             return await self._fetch_config_table("stationconfig", guild_id)
     
-    @config_cache.function(class_level=True)
+
     async def fetch_metar_channels(self, guild_id: int):
          return await self._get_allowed_channels("metarchannel", guild_id)
     
-    @config_cache.function(class_level=True)
+
     async def fetch_taf_channels(self, guild_id: int):
          return await self._get_allowed_channels("tafchannel", guild_id)
 
-    @config_cache.function(class_level=True)
+
     async def fetch_station_channels(self, guild_id: int):
          return await self._get_allowed_channels("stationchannel", guild_id)
     

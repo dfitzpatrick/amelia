@@ -42,19 +42,19 @@ class AutoRoleDataContext:
         q = "delete from autorole where role_id = $1;"
         await self.session.execute(q, role_id)
 
-    @cache.function(class_level=True)
+
     async def all_auto_roles(self) -> List[AutoRoleSchema]:
         q = "select * from autorole;"
         results = await self.session.fetch(q)
         return [AutoRoleSchema(**r) for r in results]
 
-    @cache.function(class_level=True)
+
     async def guild_auto_roles(self, guild_id: int) -> List[AutoRoleSchema]:
         q = "select * from autorole where guild_id = $1;"
         results = await self.session.fetch(q, guild_id)
         return [AutoRoleSchema(**r) for r in results]
 
-    @cache.function(class_level=True)
+
     async def get_auto_role(self, _id: int) -> Optional[AutoRoleSchema]:
         q = "select * from autorole where id = $1;"
         result = await self.session.fetchrow(q, _id)
