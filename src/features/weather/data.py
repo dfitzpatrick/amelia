@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 
 from src.cache import FunctionOperationsCache
 
+import logging
+log = logging.getLogger(__name__)
 
 
 class WeatherConfigSchema(BaseModel):
@@ -73,6 +75,8 @@ class WeatherDataContext:
     async def _fetch_config_table(self, table: str, guild_id: int) -> Optional[WeatherConfigSchema]:
         q = f"""select * from {table} where guild_id = $1;"""
         result = await self.session.fetchrow(q, guild_id)
+        log.debug(q)
+        log.debug(result)
         if result is None:
             return None
         return WeatherConfigSchema(**result)
