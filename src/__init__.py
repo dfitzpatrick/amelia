@@ -49,7 +49,7 @@ LOG_PATH.mkdir(exist_ok=True)
 
 handler_console = StreamHandler(stream=sys.stdout)
 handler_filestream = FileHandler(filename=LOG_PATH / 'bot.log', encoding='utf-8')
-handler_filestream.setLevel(logging.INFO)
+handler_filestream.setLevel(logging.DEBUG)
 handler_console.setLevel(logging.DEBUG)
 
 
