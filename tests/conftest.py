@@ -10,6 +10,7 @@ from polyfactory.factories.pydantic_factory import ModelFactory
 
 from src.data import Pg, BaseUOW
 from src.concepts.guild.data import GuildDataContext, GuildSchema
+from src.uow import UOW
 
 
 
@@ -72,9 +73,7 @@ async def empty_db(test_db_setup):
 
 @pytest_asyncio.fixture()
 async def pg(empty_db):
-    conn = await asyncpg.connect(f"{DSN}/{TEST_DB}")
-    pool = await asyncpg.create_pool(f"{DSN}/{TEST_DB}")
-    yield Pg(pool, conn, uow_cls=BaseUOW, entity_map={})
+    yield Pg(dsn=f"{DSN}/{TEST_DB}", uow_cls=UOW)
 
 @pytest_asyncio.fixture()
 async def session(empty_db):

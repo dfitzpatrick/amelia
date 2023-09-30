@@ -10,6 +10,27 @@ from logging import StreamHandler, FileHandler
 import sentry_sdk
 from dotenv import load_dotenv
 load_dotenv()
+
+class MissingOrImproperEnvironmentVariable(Exception):
+    pass
+
+def assert_envs_exist():
+    envs = (
+        ('BOT_TOKEN', 'The Bot Token', str),
+        ('DSN', 'Postgresql DSN for storage', str),
+        ('TEST_DSN', 'Postgresql temporary DSN for testing', str),
+        ('SENTRY_DSN', 'Error Reporting for Sentry', str),
+    )
+    for e in envs:
+        ident = f"{e[0]}/{e[1]}"
+        value = os.environ.get(e[0])
+        if value is None:
+            raise MissingOrImproperEnvironmentVariable(f"{ident} needs to be defined")
+        try:
+            _ = e[2](value)
+        except ValueError:
+            raise MissingOrImproperEnvironmentVariable(f"{ident} is not the required type of {e[2]}")
+assert_envs_exist()
 sentry_sdk.init(
     dsn=os.environ['SENTRY_DSN'],
 

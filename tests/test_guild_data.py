@@ -29,11 +29,23 @@ async def test_guild_context_upsert(ctx: GuildDataContext):
 async def test_member_count_increment(ctx: GuildDataContext):
     o = GuildFactory.build(id=None)
     assert o.id is None
+    o.member_count = 5
     o = await ctx.upsert(o)
     assert o.id is not None
     count = o.member_count
     o = await ctx.increment_member_count(o.guild_id)
-    assert o is not None and o.member_count == count + 1
+    assert count is not None and o is not None and o.member_count is not None and o.member_count == count + 1
+
+@pytest.mark.asyncio
+async def test_member_count_increment_on_null_value(ctx: GuildDataContext):
+    o = GuildFactory.build(id=None)
+    o.member_count = None
+    assert o.id is None
+    o = await ctx.upsert(o)
+    assert o.id is not None
+    assert o.member_count is None
+    o = await ctx.increment_member_count(o.guild_id)
+    assert o is not None and o.member_count is not None and o.member_count == 1
 
 @pytest.mark.asyncio
 async def test_member_count_increment_returns_none_if_no_guild(ctx: GuildDataContext):

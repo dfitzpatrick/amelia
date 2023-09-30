@@ -10,9 +10,7 @@ from src.bot import AmeliaBot
 import logging
 
 from src.features.facility.services import plate_to_image_bytes, all_plates_embed
-from src.pagination import LongDescriptionPaginator
-from src.tfl import TFLService, FAAPlate
-
+from src.tfl import TFLService
 log = logging.getLogger(__name__)
 RE_COMMON_TERMS = re.compile(r"\s(runway|rwy|or)\s")
 
@@ -42,7 +40,7 @@ class PlatesCog(commands.Cog):
         if options is None:
             log.error("Could not retrieve interaction options for FAA Plate autocomplete")
             return []
-        icao_arg = self.get_command_argument(options, name='icao')
+        icao_arg = self.get_command_argument(options, name='icao') #type: ignore
         if icao_arg is None or not isinstance(icao_arg, dict):
             log.error("Could not retrieve current icao text for FAA Plate autocomplete")
             return []
@@ -59,16 +57,15 @@ class PlatesCog(commands.Cog):
     async def _fetch_plates(self, icao: str) -> AutoCompleteItem:
         tfl = TFLService()
         airport = await tfl.fetch_airport(icao)
-        plates = [FAAPlate(**p) for p in airport.plates]
-        choices = [app_commands.Choice(**{'name': p.name, 'value': p.name}) for p in plates]
+        choices = [app_commands.Choice(**{'name': p.name, 'value': p.name}) for p in airport.plates]
         return AutoCompleteItem(
             param_value=icao.lower(),
             choices_cache=choices
         )
-    async def _fetch_plate_icaos(self):
+    async def _fetch_plate_icaos(self) -> list[str]:
         tfl = TFLService()
         icaos = await tfl.plates.all(icao_only=True)
-        return icaos
+        return icaos #type: ignore  bad design from tfl
 
     @app_commands.command(name='plates')
     @app_commands.autocomplete(plate_name=_plate_name_autocomplete)
@@ -80,7 +77,7 @@ class PlatesCog(commands.Cog):
                 await itx.response.send_message(f"No plates for {icao}", ephemeral=True)
                 return
             embed = all_plates_embed(icao, plates)
-            if len(embed.description) > 4000:
+            if embed.description and len(embed.description) > 4000:
                 return itx.followup.send("The result is too large to display at this time.")
             else:
                 await itx.response.send_message(embed=embed)
@@ -97,7 +94,10 @@ class PlatesCog(commands.Cog):
     async def plate_cmd_error(self, itx: Interaction, error: app_commands.AppCommandError):
         original_error = error.original if isinstance(error, app_commands.errors.CommandInvokeError) else error
         if isinstance(original_error, IndexError):
-            embed = discord.Embed(title="Plate not Found", description="Could not find that plate. This function only works with U.S. based plates")
+            embed = discord.Embed(
+                title="Plate not Found", 
+                description="Could not find that plate. This function only works with U.S. based plates"
+                )
             await itx.response.send_message(embed=embed, ephemeral=True)
         else:
             await itx.response.send_message("Unable to retrieve plate.", ephemeral=True)

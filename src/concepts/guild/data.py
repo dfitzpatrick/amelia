@@ -1,4 +1,3 @@
-from contextvars import ContextVar
 from datetime import datetime
 from typing import Optional
 
@@ -6,20 +5,16 @@ import asyncpg
 import discord
 from pydantic import BaseModel, Field
 
-
-ctx_connection = ContextVar("ctx_connection1")
-ctx_transaction = ContextVar("ctx_transaction1")
-
 class GuildSchema(BaseModel):
     id: Optional[int] = None
     created: Optional[datetime] = None
     updated: Optional[datetime] = None
     removed: Optional[datetime] = None
     joined: datetime = Field(default_factory=datetime.now)
+    member_count: Optional[int] = None
     guild_id: int
     guild_name: str
 
-    member_count: int
 
 class GuildDataContext:
 
@@ -63,6 +58,13 @@ class GuildDataContext:
         return o if o is None else GuildSchema(**o)
     
     async def increment_member_count(self, guild_id: int) -> Optional[GuildSchema]:
-        q = """update guilds set member_count = member_count + 1 where guild_id = $1 returning *; """
+        q = """
+            update guilds set member_count = 
+                case 
+                    when member_count IS NULL THEN 1
+                    else member_count + 1
+                end
+            where guild_id = $1 
+            returning *; """
         o = await self.session.fetchrow(q, guild_id)
         return o if o is None else GuildSchema(**o)

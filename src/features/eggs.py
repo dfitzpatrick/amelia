@@ -28,14 +28,14 @@ class EasterEggCog(commands.Cog):
 
     async def on_message_r_flying_easter_egg(self, message: discord.Message):
         predicates = [
-            message.guild.id == 379051048129789953,     # r/flying
+           message.guild and  message.guild.id == 379051048129789953,     # r/flying
             message.channel.id == 383128744115830785,   # #observation-chat
             message.author.id == 491769129318088714     # NTSB_BOT
         ]
         if not all(predicates):
             return
 
-        emoji = self.find_emoji(message.guild, 'ragerock', 'rage')
+        emoji = message.guild and self.find_emoji(message.guild, 'ragerock', 'rage')
         try:
             if emoji is not None:
                 await message.add_reaction(emoji)
@@ -45,7 +45,7 @@ class EasterEggCog(commands.Cog):
     async def on_message_r_flying_beacon_hi(self, message: discord.Message):
         now = datetime.now(timezone.utc)
         predicates = [
-            message.guild.id == 379051048129789953,  # r/flying
+            message.guild and message.guild.id == 379051048129789953,  # r/flying
             message.author.id == 1071113753225068734,  # Beacon
             now >= self.hi_timestamp
         ]
@@ -63,7 +63,7 @@ class EasterEggCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.id == self.bot.user.id:
+        if self.bot.user and message.author.id == self.bot.user.id:
             return
         await self.on_message_r_flying_easter_egg(message)
         await self.on_message_r_flying_beacon_hi(message)

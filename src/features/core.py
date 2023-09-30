@@ -17,14 +17,16 @@ custom_extensions = (
     'src.features.facility',
     'src.features.eggs',
     'src.features.autorole',
+    'src.features.weather',
 )
 
 weather_cmds = [
-    '/observation',
+    '/metar',
     '/taf',
 ]
 other_cmds = [
     '/plates',
+    '/sunset',
 ]
 
 class Core(Cog):

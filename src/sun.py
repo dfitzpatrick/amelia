@@ -24,6 +24,7 @@ class SunService:
         self.sunrise_headers = {
             'Content-Type': 'application/json',
         }
+        
 
 
     async def _sunriseset_fetch(self, target, session=None, **kwargs) -> SunRiseSetResponse:

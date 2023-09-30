@@ -23,7 +23,6 @@ class AmeliaBot(commands.Bot):
         self.tfl = TFLService()
         db_service.uow_cls = UOW
         self.db: Pg[UOW] = db_service
-        #Pg.migrate(os.environ['DSN'])
 
         self._first_run = True
         self.config_group = Group(name='config', description='Amelia Configuration settings')
@@ -39,8 +38,6 @@ class AmeliaBot(commands.Bot):
 
     async def on_ready(self):
         if self._first_run:
-            from src.uow import UOW
-            self.db.uow_class = UOW
             self.tree.add_command(self.config_group)
         self._first_run = False
 

@@ -7,8 +7,7 @@ import asyncio
 
 log = logging.getLogger(__name__)
 
-_dsn = os.environ['DSN']
-_token = os.environ['AMELIA_TOKEN']
+_token = os.environ['BOT_TOKEN']
 
 
 def bot_task_callback(future: asyncio.Future):
@@ -42,6 +41,8 @@ async def bootstrap():
         pass
     finally:
         await bot.close()
+
+
 
 loop = asyncio.new_event_loop()
 

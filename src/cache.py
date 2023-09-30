@@ -92,7 +92,7 @@ class FunctionOperationsCache(LRUCache[T]):
             value = getattr(obj, self._field_name)
         except AttributeError:
             try:
-                value = obj[self._field_name]
+                value = obj[self._field_name] #type: ignore
             except (TypeError, KeyError):
                 raise AttributeError
         finally:

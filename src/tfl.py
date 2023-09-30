@@ -112,7 +112,6 @@ class TFLService:
                     status = response.status
                     result = await response.json()
                     log.debug(f"FETCH {status}: {url}")
-                    log.debug(result)
                     return result
         except aiohttp.ClientResponseError as e:
             log.error(e)
@@ -161,30 +160,32 @@ class TFLService:
         r = await self._request(target)
         if r is None:
             raise StationHasNoDataError
-        return AirportDTO(**r)
+        plates = [FAAPlate(**p) for p in r['plates']]
+        del r['plates']
+        return AirportDTO(**r, plates=plates)
 
 
 class Plates:
     def __init__(self, req):
         self.req = req
 
-    async def all(self, **kwargs):
+    async def all(self, **kwargs) -> list[FAAPlate] | list[str]:
         qs = urlencode(kwargs)
         target = f'/plates/?{qs}'
         resp = await self.req(target)
         log.debug(resp)
         if resp is None:
-            return StationHasNoDataError
+            raise StationHasNoDataError
         try:
             return [FAAPlate(**r) for r in resp]
         except TypeError:
             return resp
 
-    async def by_icao(self, icao: str, **kwargs):
+    async def by_icao(self, icao: str, **kwargs) -> list[FAAPlate]:
         qs = urlencode(kwargs)
         target = f'/plates/{icao}?{qs}'
         resp = await self.req(target)
         if resp is None:
-            return StationHasNoDataError
+            raise StationHasNoDataError
         return [FAAPlate(**r) for r in resp]
 

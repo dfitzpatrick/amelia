@@ -27,7 +27,7 @@ class GuildFeatures(commands.Cog):
     async def cog_unload(self) -> None:
         self.update_member_counts_task.cancel()
 
-    async def member_count(self, guild: discord.Guild, fetch: bool = False) -> int:
+    async def member_count(self, guild: discord.Guild, fetch: bool = False) -> Optional[int]:
         count = guild.approximate_member_count
         if count is None or fetch:
             fetched_guild = await self.bot.fetch_guild(guild.id, with_counts=True)
@@ -42,28 +42,30 @@ class GuildFeatures(commands.Cog):
             await asyncio.sleep(delay)
         return container
 
-    @tasks.loop(hours=2, reconnect=True)
+    @tasks.loop(hours=6, reconnect=True)
     async def update_member_counts_task(self):
         await self.bot.wait_until_ready()
         guild_counts = await self.collect_guild_member_counts()
         async with self.bot.db as session:
             for guild_id, member_count in guild_counts.items():
+                guild = self.bot.get_guild(guild_id)
+                if guild is None:
+                    continue
                 schema = await session.guilds.update_member_count(guild_id, member_count)
                 if schema is None:
-                    schema = await self.create_guild_schema(guild_id, member_count)
+                    schema = await self.create_guild_schema(guild, member_count)
                     await session.guilds.upsert(schema)
             await session.commit()
             log.debug("guild member count update complete")
 
-    async def create_guild_schema(self, guild_id: int, member_count: Optional[int] = None):
-        guild = self.bot.get_guild(guild_id)
+    async def create_guild_schema(self, guild: discord.Guild, member_count: Optional[int] = None) -> GuildSchema:
         member_count = member_count or await self.member_count(guild)
-        return GuildSchema(guild_id=guild_id, guild_name=guild.name, member_count=member_count)
+        return GuildSchema(guild_id=guild.id, guild_name=guild.name, member_count=member_count)
 
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
-        schema = self.create_guild_schema(guild.id)
+        schema = await self.create_guild_schema(guild)
         async with self.bot.db as session:
             await session.guilds.upsert(schema)
             await session.commit()
@@ -83,7 +85,7 @@ class GuildFeatures(commands.Cog):
         async with self.bot.db as session:
             schema = session.guilds.increment_member_count(member.guild.id)
             if schema is None:
-                schema = await self.create_guild_schema(member.guild.id)
+                schema = await self.create_guild_schema(member.guild)
                 await session.guilds.upsert(schema)
             await session.commit()
 
