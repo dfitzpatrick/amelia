@@ -1,5 +1,6 @@
 bot.log
 .env
+logs/*
 
 # Created by https://www.gitignore.io/api/python,pycharm
 # Edit at https://www.gitignore.io/?templates=python,pycharm
@@ -200,3 +201,8 @@ dmypy.json
 
 # End of https://www.gitignore.io/api/python,pycharm
 .vscode/settings.json
+<<<<<<< HEAD
+=======
+.vscode/*
+.*
+>>>>>>> rework
