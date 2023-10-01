@@ -37,98 +37,102 @@ db.register_listener(database_change_notify, tables=['metarconfig', 'tafconfig',
 
 class WeatherDataContext:
 
-    def __init__(self, session: asyncpg.Connection):
-        self.session = session
+     def __init__(self, session: asyncpg.Connection):
+          self.session = session
 
 
-    async def _create_or_update_configuration(self, table: str, schema: WeatherConfigSchema) -> WeatherConfigSchema:
-        q = f"""
-      insert into {table} (guild_id, restrict_channel, delete_interval)
-      values ($1, $2, $3)
+     async def _create_or_update_configuration(self, table: str, schema: WeatherConfigSchema) -> WeatherConfigSchema:
+          q = f"""
+          insert into {table} (guild_id, restrict_channel, delete_interval)
+          values ($1, $2, $3)
 
-      on conflict (guild_id)
-      do update set guild_id = $1, restrict_channel = $2, delete_interval = $3
-      returning id, created_at, updated_at;
-      """
-        result = await self.session.fetchrow(q,
-            schema.guild_id, schema.restrict_channel, schema.delete_interval
-        )
-        values = schema.model_dump()
-        values.update(**(result or {}))
-        return WeatherConfigSchema(**values)
-    
-    async def _create_channel(self, table: str, schema: AllowedChannel) -> AllowedChannel:
-        q = f"insert into {table} (guild_id, channel_id) values ($1, $2) returning *"
-        result = await self.session.fetchrow(q, schema.guild_id, schema.channel_id)
-        return AllowedChannel(**result) # type: ignore
+          on conflict (guild_id)
+          do update set guild_id = $1, restrict_channel = $2, delete_interval = $3
+          returning id, created_at, updated_at;
+          """
+          result = await self.session.fetchrow(q,
+               schema.guild_id, schema.restrict_channel, schema.delete_interval
+          )
+          values = schema.model_dump()
+          values.update(**(result or {}))
+          return WeatherConfigSchema(**values)
 
-
-    async def create_or_update_metar_configuration(self, schema: WeatherConfigSchema) -> WeatherConfigSchema:
-         return await self._create_or_update_configuration("metarconfig", schema)
-    
-    async def create_or_update_taf_configuration(self, schema: WeatherConfigSchema) -> WeatherConfigSchema:
-         return await self._create_or_update_configuration("tafconfig", schema)
-    
-    async def create_or_update_station_configuration(self, schema: WeatherConfigSchema) -> WeatherConfigSchema:
-         return await self._create_or_update_configuration("stationconfig", schema)
-
-    async def _fetch_config_table(self, table: str, guild_id: int) -> Optional[WeatherConfigSchema]:
-        q = f"""select * from {table} where guild_id = $1;"""
-        result = await self.session.fetchrow(q, guild_id)
-        log.info(q)
-        log.info(result)
-        if result is None:
-            return None
-        return WeatherConfigSchema(**result)
-
-    async def _get_allowed_channels(self, table: str, guild_id: int) -> list[AllowedChannel]:
-         q = f"select * from {table} where guild_id = $1;"
-         results = await self.session.fetch(q, guild_id)
-         return [AllowedChannel(**r) for r in results]
-         
-    async def _remove_allowed_channel(self, table: str, channel_id: int) -> None:
-         q = f"delete from {table} where channel_id = $1;"
-         await self.session.execute(q, channel_id)
-
-    async def fetch_metar_configuration(self, guild_id: int) -> Optional[WeatherConfigSchema]:
-            return await self._fetch_config_table("metarconfig", guild_id)
-    
-
-    async def fetch_taf_configuration(self, guild_id: int) -> Optional[WeatherConfigSchema]:
-            return await self._fetch_config_table("tafconfig", guild_id)
-
-    async def fetch_station_configuration(self, guild_id: int) -> Optional[WeatherConfigSchema]:
-            return await self._fetch_config_table("stationconfig", guild_id)
-    
-
-    async def fetch_metar_channels(self, guild_id: int):
-         return await self._get_allowed_channels("metarchannel", guild_id)
-    
-
-    async def fetch_taf_channels(self, guild_id: int):
-         return await self._get_allowed_channels("tafchannel", guild_id)
+     async def _create_channel(self, table: str, schema: AllowedChannel) -> AllowedChannel:
+          q = f"insert into {table} (guild_id, channel_id) values ($1, $2) returning *"
+          result = await self.session.fetchrow(q, schema.guild_id, schema.channel_id)
+          return AllowedChannel(**result) # type: ignore
 
 
-    async def fetch_station_channels(self, guild_id: int):
-         return await self._get_allowed_channels("stationchannel", guild_id)
-    
-    async def create_metar_channel(self, schema: AllowedChannel) -> AllowedChannel:
-         schema = await self._create_channel('metarchannel', schema)
-         return schema
-    
-    async def create_taf_channel(self, schema: AllowedChannel) -> AllowedChannel:
-         schema = await self._create_channel('tafchannel', schema)
-         return schema
-    
-    async def create_station_channel(self, schema: AllowedChannel) -> AllowedChannel:
-         schema = await self._create_channel('stationchannel', schema)
-         return schema
-    
-    async def remove_metar_channel(self, channel_id: int) -> None:
-         return await self._remove_allowed_channel("metarchannel", channel_id)
-    
-    async def remove_taf_channel(self, channel_id: int) -> None:
-         return await self._remove_allowed_channel("tafchannel", channel_id)
-    
-    async def remove_station_channel(self, channel_id: int) -> None:
-         return await self._remove_allowed_channel("stationchannel", channel_id)
+     async def create_or_update_metar_configuration(self, schema: WeatherConfigSchema) -> WeatherConfigSchema:
+          return await self._create_or_update_configuration("metarconfig", schema)
+
+     async def create_or_update_taf_configuration(self, schema: WeatherConfigSchema) -> WeatherConfigSchema:
+          return await self._create_or_update_configuration("tafconfig", schema)
+
+     async def create_or_update_station_configuration(self, schema: WeatherConfigSchema) -> WeatherConfigSchema:
+          return await self._create_or_update_configuration("stationconfig", schema)
+
+     async def _fetch_config_table(self, table: str, guild_id: int) -> Optional[WeatherConfigSchema]:
+          q = f"""select * from {table} where guild_id = $1;"""
+          result = await self.session.fetchrow(q, guild_id)
+          log.info(q)
+          log.info(result)
+          if result is None:
+               return None
+          return WeatherConfigSchema(**result)
+
+     async def _get_allowed_channels(self, table: str, guild_id: int) -> list[AllowedChannel]:
+          q = f"select * from {table} where guild_id = $1;"
+          results = await self.session.fetch(q, guild_id)
+          return [AllowedChannel(**r) for r in results]
+          
+     async def _remove_allowed_channel(self, table: str, channel_id: int) -> None:
+          q = f"delete from {table} where channel_id = $1;"
+          await self.session.execute(q, channel_id)
+
+
+     @config_cache.function(class_level=True)
+     async def fetch_metar_configuration(self, guild_id: int) -> Optional[WeatherConfigSchema]:
+               return await self._fetch_config_table("metarconfig", guild_id)
+
+     @config_cache.function(class_level=True)
+     async def fetch_taf_configuration(self, guild_id: int) -> Optional[WeatherConfigSchema]:
+               return await self._fetch_config_table("tafconfig", guild_id)
+
+     @config_cache.function(class_level=True)
+     async def fetch_station_configuration(self, guild_id: int) -> Optional[WeatherConfigSchema]:
+               return await self._fetch_config_table("stationconfig", guild_id)
+
+     @config_cache.function(class_level=True)
+     async def fetch_metar_channels(self, guild_id: int):
+          return await self._get_allowed_channels("metarchannel", guild_id)
+
+     @config_cache.function(class_level=True)
+     async def fetch_taf_channels(self, guild_id: int):
+          return await self._get_allowed_channels("tafchannel", guild_id)
+
+     @config_cache.function(class_level=True)
+     async def fetch_station_channels(self, guild_id: int):
+          return await self._get_allowed_channels("stationchannel", guild_id)
+
+     
+     async def create_metar_channel(self, schema: AllowedChannel) -> AllowedChannel:
+          schema = await self._create_channel('metarchannel', schema)
+          return schema
+
+     async def create_taf_channel(self, schema: AllowedChannel) -> AllowedChannel:
+          schema = await self._create_channel('tafchannel', schema)
+          return schema
+
+     async def create_station_channel(self, schema: AllowedChannel) -> AllowedChannel:
+          schema = await self._create_channel('stationchannel', schema)
+          return schema
+
+     async def remove_metar_channel(self, channel_id: int) -> None:
+          return await self._remove_allowed_channel("metarchannel", channel_id)
+
+     async def remove_taf_channel(self, channel_id: int) -> None:
+          return await self._remove_allowed_channel("tafchannel", channel_id)
+
+     async def remove_station_channel(self, channel_id: int) -> None:
+          return await self._remove_allowed_channel("stationchannel", channel_id)

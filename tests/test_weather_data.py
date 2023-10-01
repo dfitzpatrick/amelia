@@ -2,7 +2,7 @@ from typing import Tuple
 import asyncpg
 import pytest
 import pytest_asyncio
-from src.features.weather.data import AllowedChannel, WeatherConfigSchema, WeatherDataContext
+from src.features.weather.data import AllowedChannel, WeatherConfigSchema, WeatherDataContext, config_cache
 from src.concepts.guild.data import GuildDataContext, GuildSchema
 from polyfactory.factories.pydantic_factory import ModelFactory
 
@@ -145,3 +145,19 @@ async def test_remove_station_channel(ctx_with_guild_schema: Tuple[WeatherDataCo
     q = "select count(id) from stationchannel;"
     count = await ctx.session.fetchval(q)
     assert count == 0
+
+@pytest.mark.asyncio
+async def test_cache_does_not_duplicate_keys(ctx_with_guild_schema: Tuple[WeatherDataContext, GuildSchema]) -> None:
+    ctx, o = ctx_with_guild_schema
+    schema = await ctx.create_or_update_metar_configuration(WeatherConfigSchema(guild_id=o.guild_id))
+    await ctx.create_metar_channel(AllowedChannel(guild_id=o.guild_id, channel_id=12345))
+
+    config = await ctx.fetch_metar_configuration(o.guild_id)
+    key = config_cache.last_function_id
+    channel = await ctx.fetch_metar_channels(o.guild_id)
+    channel_key = config_cache.last_function_id
+    assert key != channel_key
+    config = await ctx.fetch_metar_configuration(o.guild_id)
+    hit_key = config_cache.last_function_id
+    assert hit_key != channel_key
+    assert hit_key == key

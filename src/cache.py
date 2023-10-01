@@ -46,6 +46,12 @@ class LRUCache(Generic[T]):
         self._cache.move_to_end(key)
         return self._cache[key]
 
+    def preview(self, key: str | int) -> Optional[OneOrManyT]:
+        # Does not invoke business rules or mutate the internal OrderedDict
+        if key not in self._cache:
+            return None
+        return self._cache[key]
+
     def clear(self):
         self._cache = collections.OrderedDict()
         gc.collect()
@@ -60,10 +66,10 @@ class LRUCache(Generic[T]):
             @wraps(func)
             async def wrapper(*args, **kwargs):
                 arguments = args[1:] if class_level else args
-                key = hash((arguments, frozenset(kwargs.items())))
+                key = hash((func.__name__, arguments, frozenset(kwargs.items())))
                 item = self._cache.get(key)
                 if item is None:
-                    log.debug(f'function cache miss detected {key}')
+                    log.debug(f'function cache miss detected {key} / {func.__name__}')
                     item = await func(*args, **kwargs)
                     if item is not None:
                         self.put(key, item)
