@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import dateutil.parser
 import discord
 
-TFL_URL = 'http://theflying.life'
+TFL_URL = 'http://api.theflying.life'
 APP_COMMANDS_GUILDS = (
    discord.Object(id=1020393929746685973),
 )

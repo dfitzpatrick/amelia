@@ -45,7 +45,7 @@ def make_metar_embed(metar_dto: 'MetarDTO') -> discord.Embed:
         f"""
          **__Metar Valid {metar_dto.valid.strftime('%m/%d %H:%M')}Z__**
             {elapsed} ago
-            [Click here for more information](http://theflying.life/airports/{icao}) {warning}
+            [Click here for more information](http://api.theflying.life/airports/{icao}) {warning}
             
             {metar_dto.raw_text}
             """
@@ -74,7 +74,7 @@ def make_taf_embed(taf_dto: 'TafDTO') -> discord.Embed:
         f"""
              **Taf Issued __{taf_dto.issue_time.strftime('%m/%d %H:%M')}Z__**
                 {elapsed} ago
-                [Click here for more information](http://theflying.life/airports/{icao}) {warning}
+                [Click here for more information](http://api.theflying.life/airports/{icao}) {warning}
                 
                 {taf_dto.raw_text}
                 """

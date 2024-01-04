@@ -100,7 +100,7 @@ class AirportDTO:
 class TFLService:
 
     def __init__(self, loop=None):
-        self.api_url = 'http://theflying.life/api/v1'
+        self.api_url = 'http://api.theflying.life/api/v1'
         self.headers = {}
         self.plates = Plates(self._request)
 

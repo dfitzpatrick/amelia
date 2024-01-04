@@ -30,6 +30,7 @@ class AmeliaBot(commands.Bot):
     async def add_cog(self, *args, **kwargs) -> None:
         log.info(f"Cog Added: {args[0]}")
         await super(AmeliaBot, self).add_cog(*args, **kwargs)
+  
 
 
     async def setup_hook(self) -> None:

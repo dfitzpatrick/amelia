@@ -47,9 +47,8 @@ async def bootstrap():
 loop = asyncio.new_event_loop()
 
 try:
-    future = asyncio.ensure_future(
+    future = loop.create_task(
         bootstrap(),
-        loop=loop
     )
     future.add_done_callback(bot_task_callback)
     loop.run_forever()

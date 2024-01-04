@@ -36,21 +36,19 @@ class PlatesCog(commands.Cog):
                 return o
 
     async def _plate_name_autocomplete(self, itx: Interaction, current: str) -> list[app_commands.Choice]:
-        options = itx.data and itx.data.get('options')
-        if options is None:
-            log.error("Could not retrieve interaction options for FAA Plate autocomplete")
-            return []
-        icao_arg = self.get_command_argument(options, name='icao') #type: ignore
-        if icao_arg is None or not isinstance(icao_arg, dict):
+        try:
+            icao_value = itx.namespace.icao
+            icao_value = str(icao_value) if icao_value is not None else ''
+            choices = await self.plate_name_cache.retrieve(itx.user.id, icao_value, current)
+            return choices or []
+
+        except AttributeError:
             log.error("Could not retrieve current icao text for FAA Plate autocomplete")
             return []
-        icao_value = icao_arg.get('value')
-        icao_value = str(icao_value) if icao_value is not None else ''
-        choices = await self.plate_name_cache.retrieve(itx.user.id, icao_value, current)
-        log.debug(choices)
-        return choices or []
-
+        
+        
     async def _icao_autocomplete(self, _: Interaction, current: str):
+        log.debug("in icao auto")
         choices = await self.icao_cache.retrieve(current)
         return choices or []
 
@@ -71,7 +69,7 @@ class PlatesCog(commands.Cog):
     @app_commands.autocomplete(plate_name=_plate_name_autocomplete)
     @app_commands.autocomplete(icao=_icao_autocomplete)
     async def plate_cmd(self, itx: Interaction, icao: str, plate_name: Optional[str]):
-        if plate_name is  None:
+        if plate_name is None:
             plates = await self.bot.tfl.plates.by_icao(icao)
             if not plates:
                 await itx.response.send_message(f"No plates for {icao}", ephemeral=True)
