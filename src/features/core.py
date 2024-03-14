@@ -18,6 +18,7 @@ custom_extensions = (
     'src.features.eggs',
     'src.features.autorole',
     'src.features.weather',
+    'src.features.r_flying'
 )
 
 weather_cmds = [
