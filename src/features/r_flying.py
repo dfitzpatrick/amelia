@@ -21,7 +21,7 @@ class FlyingCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread: discord.Thread):
-        embed = discord.Embed(description="Want to be enable/disable notifications for new topics? Type /classroom-notify")
+        embed = discord.Embed(description="Want to enable/disable notifications for new topics? Type /classroom-notify")
         msg = "Hey {}, there's a new thread in classroom {}"
         role = thread.guild.get_role(NOTIFICATIONS_ROLE_ID)
         channel_notify = thread.guild.get_channel(NOTFICATION_CHANNEL_ID)
