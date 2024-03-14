@@ -8,6 +8,7 @@ from discord.ext import commands
 
 from src import common
 from src.bot import AmeliaBot
+from typing import Optional, Literal
 
 log = logging.getLogger(__name__)
 
@@ -67,13 +68,35 @@ class Core(Cog):
 
     @commands.command(name='sync')
     @commands.is_owner()
-    async def sync_text(self, ctx: commands.Context):
-        await self.bot.tree.sync()
-        for o in common.APP_COMMANDS_GUILDS:
-            log.debug(f"Copying Global App Commands to Guild id={o.id}")
-            self.bot.tree.copy_global_to(guild=o)
-            await self.bot.tree.sync(guild=o)
-        await ctx.send("Commands synced", delete_after=5)
+    async def sync(self, ctx: commands.Context, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+        if not guilds:
+            if spec == "~":
+                synced = await ctx.bot.tree.sync(guild=ctx.guild)
+            elif spec == "*":
+                ctx.bot.tree.copy_global_to(guild=ctx.guild)
+                synced = await ctx.bot.tree.sync(guild=ctx.guild)
+            elif spec == "^":
+                ctx.bot.tree.clear_commands(guild=ctx.guild)
+                await ctx.bot.tree.sync(guild=ctx.guild)
+                synced = []
+            else:
+                synced = await ctx.bot.tree.sync()
+            await ctx.send(
+                f"Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}",
+                delete_after=5
+            )
+            return
+
+        ret = 0
+        for guild in guilds:
+            try:
+                await ctx.bot.tree.sync(guild=guild)
+            except discord.HTTPException:
+                pass
+            else:
+                ret += 1
+
+        await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
 
     async def setup_extensions(self, callable):
         for ext in custom_extensions:
