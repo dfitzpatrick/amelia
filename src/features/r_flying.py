@@ -30,8 +30,10 @@ class FlyingCog(commands.Cog):
             log.warning("Forum Notification Predicate Failed")
             return
         try:
-            await thread.send(embed=embed)
             await channel_notify.send(msg.format(role.mention, thread.jump_url))
+            # Getting random Forbidden errors. Sending main notification first and letting this silently fail until
+            # I figure out why it works only some times with forum channels.
+            await thread.send(embed=embed)
         except discord.Forbidden as e:
             log.warning(f"{channel_notify.guild.id}/{channel_notify.id}: Forum Notification No Permissions")
 
