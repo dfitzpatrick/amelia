@@ -1,11 +1,19 @@
-version: "3.3"
 services:
   postgres_db:
-    env_file:
-      - .env
+    environment:
+      - POSTGRES_DB=amelia
+      - POSTGRES_USER=amelia
+      - POSTGRES_PASSWORD=amelia
     image: postgres:15.4-alpine
     ports: # Set up ports exposed for other containers to connect to
       - 5433:5432
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amelia"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
     volumes:
       - pgdata:/var/lib/postgres/data
 
@@ -13,15 +21,16 @@ services:
     container_name: app
     env_file:
       - .env
-    network_mode: host
     build: .
     volumes:
       - .:/app
-    command: python3.10 -m amelia
+      - /app/.venv
+      - /app/logs
     depends_on:
-      - postgres_db
-
+      postgres_db:
+        condition: service_healthy
 
 volumes:
   pgdata:
     external: true
+

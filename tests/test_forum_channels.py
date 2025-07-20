@@ -1,8 +1,8 @@
 from typing import Tuple
-from src.features.forum_channels.data import ForumChannelDataContext
+from amelia.features.forum_channels.data import ForumChannelDataContext
 import pytest
 import pytest_asyncio
-from src.concepts.guild.data import GuildDataContext, GuildSchema
+from amelia.concepts.guild.data import GuildDataContext, GuildSchema
 from polyfactory.factories.pydantic_factory import ModelFactory
 
 class GuildFactory(ModelFactory[GuildSchema]):

@@ -2,8 +2,8 @@ from typing import Tuple
 import asyncpg
 import pytest
 import pytest_asyncio
-from src.features.weather.data import AllowedChannel, WeatherConfigSchema, WeatherDataContext, config_cache
-from src.concepts.guild.data import GuildDataContext, GuildSchema
+from amelia.features.weather.data import AllowedChannel, WeatherConfigSchema, WeatherDataContext, config_cache
+from amelia.concepts.guild.data import GuildDataContext, GuildSchema
 from polyfactory.factories.pydantic_factory import ModelFactory
 
 class GuildFactory(ModelFactory[GuildSchema]):

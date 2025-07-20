@@ -1,4 +1,6 @@
+
 FROM python:3.10-alpine
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 RUN apk --no-cache add git
 RUN apk add --no-cache linux-headers && \
     apk --no-cache add gcc musl-dev && \
@@ -10,14 +12,10 @@ RUN apk add --no-cache linux-headers && \
     apk --no-cache add cmake && \
     apk update
 
-RUN /usr/local/bin/python3.10 -m pip install --upgrade pip
-
 WORKDIR /app
-COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-WORKDIR /home
-RUN pip install --no-cache-dir -e git+https://github.com/dfitzpatrick/ameliapg.git#egg=ameliapg
-
-WORKDIR /app
+COPY pyproject.toml pyproject.toml
+COPY uv.lock uv.lock
+RUN uv sync --locked
 
 COPY . .
+CMD ["uv", "run", "run_bot.py"]

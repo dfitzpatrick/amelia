@@ -3,7 +3,7 @@ import pytest
 import pytest_asyncio
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from src.concepts.guild.data import GuildDataContext, GuildSchema
+from amelia.concepts.guild.data import GuildDataContext, GuildSchema
 
 class GuildFactory(ModelFactory[GuildSchema]):
     __model__ = GuildSchema

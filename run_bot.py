@@ -1,9 +1,13 @@
 import logging
-from src.instances import db
-from src.bot import AmeliaBot
+from amelia.bot import AmeliaBot
 import discord
 import os
 import asyncio
+import dotenv
+from discord.ext import commands
+
+import discord.ext
+dotenv.load_dotenv()
 
 log = logging.getLogger(__name__)
 
@@ -16,6 +20,7 @@ def bot_task_callback(future: asyncio.Future):
         raise exc
 
 async def bootstrap():
+    from amelia.instances import db
     log.info(f"Discord Version: {discord.__version__}")
     db.migrate()
     await db.start_listening()
@@ -31,7 +36,7 @@ async def bootstrap():
     bot = AmeliaBot(
         db_service=db,
         intents=intents,
-        command_prefix='!',
+        command_prefix=commands.when_mentioned,
         slash_commands=True,
         activity=activity
     )

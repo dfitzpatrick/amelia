@@ -3,8 +3,8 @@ import pytest
 import pytest_asyncio
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from src.features.autorole.data import AutoRoleDataContext
-from src.features.autorole.schema import AutoRoleSchema
+from amelia.features.autorole.data import AutoRoleDataContext
+from amelia.features.autorole.schema import AutoRoleSchema
 
 
 class AutoRoleFactory(ModelFactory[AutoRoleSchema]):

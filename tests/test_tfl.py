@@ -1,4 +1,4 @@
-from src.tfl import FAAPlate, TFLService
+from amelia.tfl import FAAPlate, TFLService
 import pytest
 
 @pytest.mark.asyncio

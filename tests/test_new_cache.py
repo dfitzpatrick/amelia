@@ -1,6 +1,6 @@
 import pytest
 
-from src.cache import LRUCache, FunctionOperationsCache
+from amelia.cache import LRUCache, FunctionOperationsCache
 import logging
 log = logging.getLogger(__name__)
 

@@ -5,13 +5,13 @@ import pytest
 import pytest_asyncio
 import asyncpg
 import asyncio
-
+import dotenv
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from src.data import Pg, BaseUOW
-from src.concepts.guild.data import GuildDataContext, GuildSchema
-from src.uow import UOW
-
+from amelia.data import Pg, BaseUOW
+from amelia.concepts.guild.data import GuildDataContext, GuildSchema
+from amelia.uow import UOW
+dotenv.load_dotenv('../.env')
 
 
 DSN = os.environ['TEST_DSN']
@@ -47,6 +47,7 @@ def event_loop():
 
 @pytest_asyncio.fixture(scope="session")
 async def test_db_setup():
+    print(f"DSN is {DSN}")
     conn: asyncpg.Connection
     conn = await asyncpg.connect(f"{DSN}/template1")
     await conn.execute(f"DROP DATABASE IF EXISTS {TEST_DB_TEMPLATE} WITH (FORCE);")
