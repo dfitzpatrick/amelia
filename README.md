@@ -1,3 +1,2 @@
 # amelia
-Discord Bot for Aviation
-
+Discord Bot for Aviation.
