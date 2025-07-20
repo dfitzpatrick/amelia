@@ -10,6 +10,7 @@ from logging import StreamHandler, FileHandler
 import sentry_sdk
 from dotenv import load_dotenv
 load_dotenv()
+log = logging.getLogger(__name__)
 
 class MissingOrImproperEnvironmentVariable(Exception):
     pass
@@ -25,11 +26,13 @@ def assert_envs_exist():
         ident = f"{e[0]}/{e[1]}"
         value = os.environ.get(e[0])
         if value is None:
-            raise MissingOrImproperEnvironmentVariable(f"{ident} needs to be defined")
+            log.warning(f"{ident} needs to be defined")
+            #raise MissingOrImproperEnvironmentVariable(f"{ident} needs to be defined")
         try:
             _ = e[2](value)
         except ValueError:
-            raise MissingOrImproperEnvironmentVariable(f"{ident} is not the required type of {e[2]}")
+            log.warning(f"{ident} is not the required type of {e[2]}")
+            #raise MissingOrImproperEnvironmentVariable(f"{ident} is not the required type of {e[2]}")
 assert_envs_exist()
 sentry_sdk.init(
     dsn=os.environ['SENTRY_DSN'],
@@ -68,6 +71,6 @@ logging.getLogger('asyncio').setLevel(logging.ERROR)
 logging.getLogger('discord').setLevel(logging.ERROR)
 logging.getLogger('websockets').setLevel(logging.ERROR)
 logging.getLogger('asyncpg').setLevel(logging.DEBUG)
-log = logging.getLogger(__name__)
+
 
 
