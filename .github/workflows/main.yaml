@@ -7,6 +7,9 @@ jobs:
   test:
     name: python
     runs-on: ubuntu-latest
+    env:
+        SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+
     steps:
       - uses: actions/checkout@v4
       - name: Install uv tool
