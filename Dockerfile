@@ -10,6 +10,8 @@ RUN apk add --no-cache linux-headers && \
     apk --no-cache add libffi-dev && \
     apk --no-cache add git && \
     apk --no-cache add cmake && \
+    apk --no-cache add poppler-utils && \
+    apk --no-cache add python-poppler && \
     apk update
 
 WORKDIR /app

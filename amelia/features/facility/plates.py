@@ -10,9 +10,12 @@ from amelia.bot import AmeliaBot
 import logging
 
 from .services import plate_to_image_bytes, all_plates_embed
-from amelia.tfl import TFLService
+from io import BytesIO
+from amelia.tfl import TFLService, NoChartSupplementError
 log = logging.getLogger(__name__)
 RE_COMMON_TERMS = re.compile(r"\s(runway|rwy|or)\s")
+from zipfile import ZipFile
+from pdf2image import convert_from_bytes
 
 class PlatesCog(commands.Cog):
 
@@ -108,5 +111,57 @@ def sanitize_plate_name(value: str):
     value = str(re.sub(RE_COMMON_TERMS, ' ', value))
     return value
 
+
+class ChartSupplementCOG(commands.Cog):
+    def __init__(self, bot: AmeliaBot):
+        self.bot = bot
+
+    @app_commands.command(name='chart-supplement')
+    @app_commands.describe(icao="Airport ICAO")
+    async def chart_supplment(self, itx: Interaction, icao: str):
+
+        tfl = TFLService()
+        icao = icao.lower()
+
+        response = await tfl.fetch_chart_supplement(icao)
+        if not response:
+            response = await tfl.fetch_chart_supplement(icao[1::])
+        if not response:
+            raise NoChartSupplementError
+        await itx.response.defer()
+        image_objs = zip_pdfs_to_image(response)
+        discord_files = [discord.File(img, filename=f"{icao}_{idx}.png") for idx, img in enumerate(image_objs)]
+        await itx.followup.send(f"Chart Supplement for {icao.upper()}", files=discord_files)
+
+
+    @chart_supplment.error
+    async def chart_cmd_error(self, itx: Interaction, error: app_commands.AppCommandError):
+        original_error = error.original if isinstance(error, app_commands.errors.CommandInvokeError) else error
+        if isinstance(original_error, NoChartSupplementError):
+            embed = discord.Embed(
+                title="No Chart Supplement Found", 
+                description="We could not find the chart supplement for this airport"
+                )
+            await itx.response.send_message(embed=embed, ephemeral=True)
+        else:
+            await itx.response.send_message("Unable to retrieve chart supplement.", ephemeral=True)
+            raise error
+
+def zip_pdfs_to_image(zip_obj: BytesIO) -> BytesIO:
+    image_objs = []
+    log.info("Getting Zip File")
+    with ZipFile(zip_obj) as zf:
+        for member in zf.namelist():
+            log.info("Processing image")
+            with zf.open(member) as page:
+                image = convert_from_bytes(page.read(), first_page=1, last_page=1)[0]
+                image_bytes = BytesIO()
+                image.save(image_bytes, format='PNG')
+                image_bytes.seek(0)
+                image_objs.append(image_bytes)
+    
+    return image_objs
+    
 async def setup(bot):
     await bot.add_cog(PlatesCog(bot))
+    await bot.add_cog(ChartSupplementCOG(bot))

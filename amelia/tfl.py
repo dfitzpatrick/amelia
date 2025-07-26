@@ -8,9 +8,14 @@ import aiohttp
 from dateutil import parser
 from urllib.parse import urlencode
 log = logging.getLogger(__name__)
+from io import BytesIO
 
+import os
 
 class StationHasNoDataError(Exception):
+    pass
+
+class NoChartSupplementError(Exception):
     pass
 
 @dataclass
@@ -100,7 +105,7 @@ class AirportDTO:
 class TFLService:
 
     def __init__(self, loop=None):
-        self.api_url = 'http://api.theflying.life/api/v1'
+        self.api_url = os.environ.get('TFL_API', 'http://api.theflying.life/api/v1')
         self.headers = {}
         self.plates = Plates(self._request)
 
@@ -163,6 +168,19 @@ class TFLService:
         plates = [FAAPlate(**p) for p in r['plates']]
         del r['plates']
         return AirportDTO(**r, plates=plates)
+    
+    async def fetch_chart_supplement(self, icao: str) -> BytesIO | None:
+        log.info("In chart supplement")
+        target = f'/dcs/{icao}'
+        async with aiohttp.ClientSession(headers=self.headers) as session:
+            url = "{0}{1}".format(self.api_url, target)
+            log.info(f"Calling: {url}")
+            async with session.get(url) as response:
+                if response.content_type != "application/x-zip-compressed":
+                    return
+                data = await response.read()
+                data = BytesIO(data)
+                return data
 
 
 class Plates:
