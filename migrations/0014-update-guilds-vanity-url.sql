@@ -1,0 +1,1 @@
+ALTER TABLE Guilds ADD COLUMN vanity_url VARCHAR(150);

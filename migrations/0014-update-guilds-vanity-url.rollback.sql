@@ -1,0 +1,1 @@
+ALTER TABLE Guilds DROP COLUMN vanity_url;

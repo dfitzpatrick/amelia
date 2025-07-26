@@ -12,6 +12,7 @@ class GuildSchema(BaseModel):
     removed: Optional[datetime] = None
     joined: datetime = Field(default_factory=datetime.now)
     member_count: Optional[int] = None
+    vanity_url: Optional[str] = None
     guild_id: int
     guild_name: str
 
@@ -23,15 +24,15 @@ class GuildDataContext:
 
     async def upsert(self, schema: GuildSchema):
         q = """
-      insert into guilds (guild_id, guild_name, joined, member_count)
-      values ($1, $2, $3, $4)
+      insert into guilds (guild_id, guild_name, joined, member_count, vanity_url)
+      values ($1, $2, $3, $4, $5)
 
       on conflict (guild_id)
-      do update set guild_id = $1, guild_name = $2, joined = $3, member_count = $4
+      do update set guild_id = $1, guild_name = $2, joined = $3, member_count = $4, vanity_url = $5
       returning id, created, updated;
       """
         result = await self.session.fetchrow(q,
-            schema.guild_id, schema.guild_name, schema.joined, schema.member_count
+            schema.guild_id, schema.guild_name, schema.joined, schema.member_count, schema.vanity_url
         )
         values = schema.model_dump()
         values.update(**(result or {}))
@@ -48,6 +49,7 @@ class GuildDataContext:
         schema = GuildSchema(
             guild_id=guild.id,
             guild_name=guild.name,
+            vanity_url=guild.vanity_url,
             member_count=member_count
         )
         await self.upsert(schema)
