@@ -48,7 +48,8 @@ class GuildFeatures(commands.Cog):
                 guild_id=g.id,
                 member_count=count,
                 vanity_url=g.vanity_url,
-                guild_name=g.name
+                guild_name=g.name,
+                joined=g.me.joined_at
             )
     @tasks.loop(hours=6, reconnect=True)
     async def update_guilds_task(self):
