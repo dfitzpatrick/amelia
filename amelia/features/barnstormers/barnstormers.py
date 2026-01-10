@@ -22,14 +22,13 @@ PARENT_PATH = os.path.dirname(os.path.abspath(__file__))
 class Barnstormers(commands.Cog):
     polling_minutes = 15
     polling_url = "https://www.barnstormers.com/listing.php"
-    channel_id = os.environ.get('FOR_SALE_CHANNEL', 1020393930342268961)
+    channel_id = int(os.environ.get('FOR_SALE_CHANNEL', 1020393930342268961))
     marker = PARENT_PATH + "/.marker.txt"
     def __init__(self, bot: AmeliaBot):
         self.bot = bot
         self.config_command: Group | None = None
         self.last_id: int | None = None
         self.queue: Queue[Classified] = Queue()
-
 
     async def cog_load(self):
         await self.load_marker()
