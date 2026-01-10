@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 PARENT_PATH = os.path.dirname(os.path.abspath(__file__))
 class Barnstormers(commands.Cog):
-    polling_minutes = 15
+    polling_minutes = 5
     polling_url = "https://www.barnstormers.com/listing.php"
     channel_id = int(os.environ.get('FOR_SALE_CHANNEL', 1020393930342268961))
     marker = PARENT_PATH + "/.marker.txt"
