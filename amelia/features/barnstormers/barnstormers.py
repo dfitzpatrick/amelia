@@ -38,6 +38,7 @@ class Barnstormers(commands.Cog):
 
     async def save_marker(self, ad: Classified):
         # This is extremely lazy, but even if corrupted its not a huge deal.
+        self.last_id = ad.data_id
         async with aiofiles.open(self.marker, mode='w') as f:
             await f.write(str(ad.data_id))
     
@@ -90,6 +91,7 @@ class Barnstormers(commands.Cog):
             images = ad.images[:10]
             files = [discord.File(bd, filename=fn) for fn, bd in await download_images(images)]
             log.debug(files)
-        await channel.send(view=layout, files=files)
+        msg = await channel.send(view=layout, files=files)
+        await msg.publish()
         
 
