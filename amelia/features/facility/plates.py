@@ -16,6 +16,7 @@ log = logging.getLogger(__name__)
 RE_COMMON_TERMS = re.compile(r"\s(runway|rwy|or)\s")
 from zipfile import ZipFile
 from pdf2image import convert_from_bytes
+from .ui import ChartSupplementView
 
 class PlatesCog(commands.Cog):
 
@@ -131,7 +132,9 @@ class ChartSupplementCOG(commands.Cog):
         await itx.response.defer()
         image_objs = zip_pdfs_to_image(response)
         discord_files = [discord.File(img, filename=f"{icao}_{idx}.png") for idx, img in enumerate(image_objs)]
-        await itx.followup.send(f"Chart Supplement for {icao.upper()}", files=discord_files)
+        view = ChartSupplementView(discord_files)
+        await itx.followup.send(view=view, files=discord_files)
+        #await itx.followup.send(f"Chart Supplement for {icao.upper()}", files=discord_files)
 
 
     @chart_supplment.error

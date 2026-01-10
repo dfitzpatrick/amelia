@@ -18,7 +18,8 @@ custom_extensions = (
     'amelia.features.eggs',
     'amelia.features.autorole',
     'amelia.features.weather',
-    'amelia.features.r_flying'
+    'amelia.features.r_flying',
+    'amelia.features.barnstormers',
 )
 
 weather_cmds = [
