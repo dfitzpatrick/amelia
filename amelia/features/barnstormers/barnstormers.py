@@ -56,10 +56,13 @@ class Barnstormers(commands.Cog):
     
     @tasks.loop(seconds=polling_minutes*60, reconnect=True)
     async def polling_task(self):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(self.polling_url) as response:
-                html = await response.text()
-                await self.collect_classifieds(html)
+        try:
+            async with aiohttp.ClientSession(raise_for_status=True) as session:
+                async with session.get(self.polling_url) as response:
+                    html = await response.text()
+                    await self.collect_classifieds(html)
+        except aiohttp.ClientConnectionError as e:
+            log.info(f"Failed to fetch Barnstormers. Status: {e.status} - {e.message}")
     
     async def collect_classifieds(self, html: str):
         classifieds = get_classifieds(html)
